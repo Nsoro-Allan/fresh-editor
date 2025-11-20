@@ -16,6 +16,8 @@ pub enum ViewTokenKind {
     Text(String),
     /// Newline in the source
     Newline,
+    /// Whitespace (commonly used when transforming newlines to spaces)
+    Space,
     /// Virtual text (injected, not in source)
     VirtualText {
         text: String,
@@ -31,7 +33,7 @@ pub enum ViewTokenKind {
 }
 
 /// A view token with source mapping
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ViewToken {
     /// Byte offset in source for this token, if any
     pub source_offset: Option<usize>,
