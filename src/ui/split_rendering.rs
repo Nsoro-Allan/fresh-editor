@@ -525,33 +525,21 @@ impl SplitRenderer {
         let mut view_extra_sources: HashMap<usize, Option<usize>> = HashMap::new();
 
         // Build source->view map (first occurrence)
-        let mut source_to_view = HashMap::new();
-        for (view_idx, src_opt) in view_mapping.iter().enumerate() {
-            if let Some(src) = src_opt {
-                source_to_view.insert(*src, view_idx);
-            }
-        }
-        for (view_idx, src_opt) in &view_extra_sources {
-            if let Some(src) = src_opt {
-                source_to_view.insert(*src, *view_idx);
-            }
-        }
-
-        // Viewport anchoring for transformed view
-        let view_top = source_to_view
-            .get(&state.viewport.top_byte)
-            .copied()
+        // Viewport anchoring for transformed view: find view char closest to top_byte
+        let view_top = view_mapping
+            .iter()
+            .position(|m| m.map_or(false, |s| s >= state.viewport.top_byte))
             .unwrap_or(0);
         let mut view_start_line_idx = 0usize;
         let mut view_start_line_skip = 0usize;
         for (idx, (line_offset, text, _)) in view_lines.iter().enumerate() {
             let len = text.chars().count();
-                if view_top >= *line_offset && view_top <= *line_offset + len {
-                    view_start_line_idx = idx;
-                    view_start_line_skip = view_top.saturating_sub(*line_offset);
-                    break;
-                }
+            if view_top >= *line_offset && view_top <= *line_offset + len {
+                view_start_line_idx = idx;
+                view_start_line_skip = view_top.saturating_sub(*line_offset);
+                break;
             }
+        }
 
         // Update margin width based on buffer size
         // Estimate total lines from buffer length (same as viewport.gutter_width)
@@ -643,17 +631,14 @@ impl SplitRenderer {
             state
                 .cursors
                 .iter()
-                .map(|(_, cursor)| source_to_view.get(&cursor.position).copied().unwrap_or(cursor.position))
+                .map(|(_, cursor)| cursor.position)
                 .collect()
         } else {
             Vec::new()
         };
 
         // Get primary cursor view position (if mapped)
-        let primary_cursor_view_idx = source_to_view.get(&state.cursors.primary().position).copied();
-        // If unmapped, keep source byte for logging/fallbacks
-        let primary_cursor_position = primary_cursor_view_idx
-            .unwrap_or(state.cursors.primary().position);
+        let primary_cursor_position = state.cursors.primary().position;
 
         tracing::trace!(
             "Rendering buffer with {} cursors at positions: {:?}, primary at {}, is_active: {}, buffer_len: {}",
@@ -751,7 +736,6 @@ impl SplitRenderer {
         // Track cursor position during rendering (eliminates duplicate line iteration)
         let mut cursor_screen_x = 0u16;
         let mut cursor_screen_y = 0u16;
-        let mut view_to_screen: HashMap<usize, (u16, u16)> = HashMap::new();
         let mut source_to_screen: HashMap<usize, (u16, u16)> = HashMap::new();
         let mut have_cursor = false;
 
@@ -1189,14 +1173,14 @@ impl SplitRenderer {
                                     .fg(theme.editor_fg)
                                     .bg(theme.inactive_cursor)
                             };
-                            push_span_with_map(
-                                &mut line_spans,
-                                &mut line_view_map,
-                                " ".to_string(),
-                                cursor_style,
-                                Some(view_idx),
-                            );
-                        }
+                        push_span_with_map(
+                            &mut line_spans,
+                            &mut line_view_map,
+                            " ".to_string(),
+                            cursor_style,
+                            Some(view_idx),
+                        );
+                    }
                         // Primary cursor on newline will be shown by terminal hardware cursor (active split only)
                     }
                 }
@@ -1345,7 +1329,7 @@ impl SplitRenderer {
                     );
                     segment_spans.extend(styled_spans);
 
-                    // Record view->screen mapping for visible characters in this segment
+                    // Record source->screen mapping for visible characters in this segment
                     let current_y = lines.len() as u16;
                     for (i, ch) in segment_text.chars().enumerate() {
                         if ch == '\n' {
@@ -1355,23 +1339,13 @@ impl SplitRenderer {
                             content_view_map.get(segment.start_char_offset + i)
                         {
                             let screen_x = i as u16;
-                            view_to_screen
-                                .entry(*view_idx)
-                                .or_insert_with(|| {
-                                    tracing::trace!(
-                                        "Mapping view {}; screen coord ({},{})",
-                                        view_idx,
-                                        screen_x,
-                                        current_y
-                                    );
-                                    (screen_x, current_y)
-                                });
                             let src_opt = view_mapping
                                 .get(*view_idx)
                                 .copied()
                                 .flatten()
                                 .or_else(|| view_extra_sources.get(view_idx).copied().flatten());
                             if let Some(src) = src_opt {
+                                // latest wins; monotonic render order preserves the last on-screen position
                                 source_to_screen.insert(src, (screen_x, current_y));
                                 if src == state.cursors.primary().position {
                                     cursor_screen_x = screen_x;
@@ -1408,8 +1382,7 @@ impl SplitRenderer {
         // The loop above only iterates over existing lines, but if cursor is at the very end
         // of the buffer after a newline, it represents a new empty line that needs to be rendered
         // with its margin/gutter
-        if !view_to_screen.contains_key(&primary_cursor_position)
-            && primary_cursor_position == state.buffer.len()
+        if primary_cursor_position == state.buffer.len()
         {
             // Check if buffer ends with newline (creating an implicit empty last line)
             let buffer_ends_with_newline = if state.buffer.len() > 0 {
@@ -1478,19 +1451,7 @@ impl SplitRenderer {
             };
         }
 
-        if !have_cursor {
-            if let Some(pos) = source_to_screen.get(&state.cursors.primary().position) {
-                cursor_screen_x = pos.0;
-                cursor_screen_y = pos.1;
-                have_cursor = true;
-            } else if let Some(view_idx) = primary_cursor_view_idx {
-                if let Some(pos) = view_to_screen.get(&view_idx) {
-                    cursor_screen_x = pos.0;
-                    cursor_screen_y = pos.1;
-                    have_cursor = true;
-                }
-            }
-        }
+        // No additional fallback; if unmapped, skip moving hardware cursor this frame
 
         while lines.len() < render_area.height as usize {
             lines.push(Line::raw(""));
@@ -1523,11 +1484,11 @@ impl SplitRenderer {
             let (x, y) = (cursor_screen_x, cursor_screen_y);
 
             tracing::trace!(
-                "Setting hardware cursor to PRIMARY cursor position: ({}, {}), view idx mapping {:?}, buffer pos {}",
+                "Setting hardware cursor to PRIMARY cursor position: ({}, {}), buffer pos {}, mapped={}",
                 x,
                 y,
-                primary_cursor_view_idx.and_then(|v| view_to_screen.get(&v)),
-                state.cursors.primary().position
+                state.cursors.primary().position,
+                have_cursor
             );
 
             // Adjust for line numbers (gutter width is dynamic based on max line number)
