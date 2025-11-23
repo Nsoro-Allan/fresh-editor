@@ -17,3 +17,5 @@ install-path = "CARGO_HOME"
 install-updater = false
 # Extra static files to include in each App (path relative to this Cargo.toml's dir)
 include = ["plugins/"]
+# A namespace to use when publishing this package to the npm registry
+npm-scope = "@fresh-editor"
