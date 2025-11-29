@@ -1,6 +1,6 @@
 [package]
 name = "fresh-editor"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Noam Lewis"]
 edition = "2021"
 description = "A lightweight, fast terminal-based text editor with LSP support and TypeScript plugins"
