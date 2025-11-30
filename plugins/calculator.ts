@@ -249,7 +249,7 @@ function renderCalculator(): TextPropertyEntry[] {
 
   // Help line
   addLine("");
-  addLine(`${pad}${C.DIM}  Q:close  =/Enter:calc  Esc:clear${C.RESET}`);
+  addLine(`${pad}${C.DIM}  Esc:close  =/Enter:calc  Del:clear${C.RESET}`);
 
   return entries;
 }
@@ -679,11 +679,11 @@ globalThis.calculator_open = async function (): Promise<void> {
     ["/", "calc_divide"], ["(", "calc_lparen"], [")", "calc_rparen"],
     [".", "calc_dot"], ["^", "calc_power"],
     ["Return", "calc_equals"], ["=", "calc_equals"],
-    ["Escape", "calc_clear"],
+    ["Delete", "calc_clear"],
     ["Backspace", "calc_backspace"],
-    ["Q", "calc_close"],
+    ["Escape", "calc_close"],
   ];
-  // Add letter bindings (lowercase for typing, uppercase Q for close)
+  // Add letter bindings for typing function names
   for (const ch of "abcdefghijklmnopqrstuvwxyz") {
     modeBindings.push([ch, `calc_letter_${ch}`]);
   }
