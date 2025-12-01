@@ -1646,11 +1646,8 @@ fn test_clangd_plugin_switch_source_header() -> std::io::Result<()> {
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
 
-    for _ in 0..5 {
-        std::thread::sleep(Duration::from_millis(50));
-        let _ = harness.editor_mut().process_async_messages();
-        harness.render()?;
-    }
+    // Wait until the header file content is visible (logical event)
+    harness.wait_until(|h| h.screen_to_string().contains("header content"))?;
 
     let screen = harness.screen_to_string();
     assert!(
