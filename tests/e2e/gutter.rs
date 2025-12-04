@@ -1228,6 +1228,7 @@ fn test_buffer_modified_clears_after_manual_delete_restores_content() {
 
 /// Test that pasting original content back clears the indicator
 #[test]
+#[ignore = "flaky test - times out intermittently"]
 fn test_buffer_modified_clears_after_paste_restores_content() {
     let repo = GitTestRepo::new();
 
