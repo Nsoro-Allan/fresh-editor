@@ -21,3 +21,7 @@ include = ["plugins/"]
 npm-scope = "@fresh-editor"
 # Host jobs to run in CI
 host-jobs = ["./linux-packages"]
+
+[package]
+# Point dist at the changelog so GitHub Releases get populated
+changelog = "RELEASE_NOTES.md"
