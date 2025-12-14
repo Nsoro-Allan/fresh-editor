@@ -1,6 +1,5 @@
 // End-to-end tests for buffer lifecycle: save, close, quit with modifications
 
-use crate::common::fixtures::TestFixture;
 use crate::common::harness::EditorTestHarness;
 use crossterm::event::{KeyCode, KeyModifiers};
 

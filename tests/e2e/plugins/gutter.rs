@@ -68,29 +68,6 @@ fn get_indicator_lines(screen: &str, symbol: &str) -> Vec<usize> {
     lines_with_indicator
 }
 
-/// Get the line number shown in the gutter for a content line (parses the line number from gutter)
-/// Returns None if line number can't be parsed
-fn get_displayed_line_number(line: &str) -> Option<usize> {
-    // Line format is: "I NNNN │ content" where I is indicator, NNNN is line number
-    // Skip first char (indicator), then parse digits
-    let chars: Vec<char> = line.chars().collect();
-    if chars.len() < 2 {
-        return None;
-    }
-
-    // Find digits after the indicator
-    let mut num_str = String::new();
-    for c in chars.iter().skip(1) {
-        if c.is_ascii_digit() {
-            num_str.push(*c);
-        } else if !c.is_whitespace() {
-            break;
-        }
-    }
-
-    num_str.trim().parse().ok()
-}
-
 /// Wait for a gutter indicator to appear on any line
 fn wait_for_indicator(harness: &mut EditorTestHarness, symbol: &str) {
     let symbol = symbol.to_string();
@@ -115,14 +92,6 @@ fn wait_for_indicator_on_line(harness: &mut EditorTestHarness, symbol: &str, lin
             let screen = h.screen_to_string();
             get_indicator_lines(&screen, &symbol).contains(&line)
         })
-        .unwrap();
-}
-
-/// Wait for content to appear on screen
-fn wait_for_content(harness: &mut EditorTestHarness, content: &str) {
-    let content = content.to_string();
-    harness
-        .wait_until(|h| h.screen_to_string().contains(&content))
         .unwrap();
 }
 

@@ -807,7 +807,7 @@ mod tests {
         assert!(meta_content.contains("\"final_size\""));
 
         // Load entry and verify
-        let entry = storage.load_entry(id).unwrap().unwrap();
+        let _entry = storage.load_entry(id).unwrap().unwrap();
 
         // Test: list entry shows up
         let entries = storage.list_entries().unwrap();

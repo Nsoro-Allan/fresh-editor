@@ -1,6 +1,5 @@
 use crate::common::harness::EditorTestHarness;
 use crossterm::event::{KeyCode, KeyModifiers};
-use tempfile::TempDir;
 
 /// Test basic split view creation (horizontal)
 #[test]

@@ -2,7 +2,6 @@ use crate::common::fixtures::TestFixture;
 use crate::common::harness::EditorTestHarness;
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::fs;
-use tracing_subscriber::EnvFilter;
 
 /// Test file content with git conflict markers
 const CONFLICT_FILE_CONTENT: &str = r#"// Some code before conflict

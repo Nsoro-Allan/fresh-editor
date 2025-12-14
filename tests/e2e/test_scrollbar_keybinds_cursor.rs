@@ -164,7 +164,7 @@ fn test_cursor_visible_when_scrolling_down_in_large_file() {
 
         // After each key press, cursor should be visible on screen
         // (not disappeared as the bug describes)
-        let (screen_x, screen_y) = harness.screen_cursor_position();
+        let (_screen_x, screen_y) = harness.screen_cursor_position();
 
         // Cursor should be visible (y should be within viewport height)
         assert!(
@@ -225,7 +225,7 @@ fn test_empty_last_line_delete_preserves_margin() {
     harness.assert_buffer_content("line1\nline2\n");
 
     // Get screen position before Delete
-    let (initial_screen_x, initial_screen_y) = harness.screen_cursor_position();
+    let (_initial_screen_x, initial_screen_y) = harness.screen_cursor_position();
 
     // Check that gutter/margin is visible before Delete
     // The line number "3" should be visible somewhere in the gutter (columns 0-6)
@@ -327,7 +327,7 @@ fn test_cursor_x_position_after_enter_at_end_of_line() {
     assert_eq!(harness.cursor_position(), 12);
 
     // Get screen cursor position
-    let (screen_x, screen_y) = harness.screen_cursor_position();
+    let (screen_x, _screen_y) = harness.screen_cursor_position();
 
     // The cursor should be at the leftmost column of the content area (after the gutter)
     // For a buffer with 3 lines (line1, line2, empty), the gutter width is:

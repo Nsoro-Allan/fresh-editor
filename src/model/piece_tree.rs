@@ -2010,7 +2010,7 @@ mod tests {
 
         // Create buffer with initial content
         let initial = b"fn foo(val: i32) {\n    val + 1\n}\n";
-        let mut buffer = StringBuffer::new(0, initial.to_vec());
+        let buffer = StringBuffer::new(0, initial.to_vec());
         let buffers = vec![buffer.clone()];
 
         let mut tree = PieceTree::new(
@@ -2655,7 +2655,7 @@ mod property_tests {
                         1..20
                     )).prop_map(|(offset, bytes)| (offset, bytes, true)),
                     // Delete
-                    (0usize..50, 1usize..10).prop_map(|(offset, bytes)| (offset, vec![], false)),
+                    (0usize..50, 1usize..10).prop_map(|(offset, _bytes)| (offset, vec![], false)),
                 ],
                 5..20
             ),

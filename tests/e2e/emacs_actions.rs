@@ -105,7 +105,7 @@ fn test_open_line_basic() {
     harness.send_key(KeyCode::Left, KeyModifiers::NONE).unwrap();
     harness.render().unwrap();
 
-    let cursor_before = harness.cursor_position();
+    let _cursor_before = harness.cursor_position();
 
     // Execute open_line (Ctrl+O)
     harness

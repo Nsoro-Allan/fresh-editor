@@ -1384,7 +1384,6 @@ edition = "2021"
 #[test]
 #[ignore] // Run with: cargo test test_lsp_typing_performance_with_many_diagnostics -- --ignored --nocapture
 fn test_lsp_typing_performance_with_many_diagnostics() -> std::io::Result<()> {
-    use fresh::model::event::{Event, OverlayFace};
     use std::time::Instant;
 
     const DIAGNOSTIC_COUNT: usize = 200; // Simulate 200 diagnostics (100 lines)
@@ -2447,7 +2446,7 @@ fn test_lsp_progress_status_display() -> std::io::Result<()> {
 
     // Track progress messages we've seen
     let mut seen_begin = false;
-    let mut seen_report = false;
+    let mut _seen_report = false;
     let mut seen_end = false;
     let mut progress_titles = Vec::new();
     let mut progress_messages = Vec::new();
@@ -2491,7 +2490,7 @@ fn test_lsp_progress_status_display() -> std::io::Result<()> {
         let screen = harness.screen_to_string();
         if screen.contains("Indexing") || screen.contains("Loading") || screen.contains("Building")
         {
-            seen_report = true;
+            _seen_report = true;
         }
         // Check if status bar shows "LSP (rust):" which indicates progress is being rendered
         if screen.contains("LSP (rust):") {

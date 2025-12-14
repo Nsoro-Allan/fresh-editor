@@ -1987,19 +1987,6 @@ fn trigger_test_view_marker_many_virtual_lines(harness: &mut EditorTestHarness) 
     harness.render().unwrap();
 }
 
-/// Helper to trigger test view marker with interleaved headers via command palette
-fn trigger_test_view_marker_interleaved(harness: &mut EditorTestHarness) {
-    harness
-        .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
-        .unwrap();
-    harness.render().unwrap();
-    harness.type_text("Test View Marker (Interleaved)").unwrap();
-    harness
-        .send_key(KeyCode::Enter, KeyModifiers::NONE)
-        .unwrap();
-    harness.render().unwrap();
-}
-
 /// MINIMAL REPRODUCTION: View transform header at byte 0 should be visible
 ///
 /// This is the simplest possible test for the bug described in docs/BLAME.md:

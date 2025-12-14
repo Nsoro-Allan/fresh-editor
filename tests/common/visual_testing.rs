@@ -152,7 +152,7 @@ fn buffer_to_string(buffer: &Buffer) -> String {
 
     for y in 0..height {
         for x in 0..width {
-            let cell = buffer.get(x, y);
+            let cell = &buffer[(x, y)];
             result.push_str(cell.symbol());
         }
         if y < height - 1 {
@@ -209,7 +209,7 @@ pub fn render_buffer_to_svg(
     // Render cells
     for y in 0..height {
         for x in 0..width {
-            let cell = buffer.get(x, y);
+            let cell = &buffer[(x, y)];
             let style = cell.style();
             let symbol = cell.symbol();
 

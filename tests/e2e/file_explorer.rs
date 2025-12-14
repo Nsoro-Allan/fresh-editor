@@ -1,11 +1,10 @@
 use crate::common::harness::EditorTestHarness;
+use crossterm::event::{KeyCode, KeyModifiers};
 use std::fs;
 
 /// Test file explorer toggle
 #[test]
 fn test_file_explorer_toggle() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::new(120, 40).unwrap();
 
     // Initially file explorer should not be visible
@@ -58,8 +57,6 @@ fn test_file_explorer_toggle() {
 /// Test file explorer displays directory structure
 #[test]
 fn test_file_explorer_shows_directory_structure() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     // Create harness with isolated temp project
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
@@ -95,8 +92,6 @@ fn test_file_explorer_shows_directory_structure() {
 /// Test file explorer navigation
 #[test]
 fn test_file_explorer_navigation() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     // Create harness with isolated temp project
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
@@ -116,7 +111,7 @@ fn test_file_explorer_navigation() {
     std::thread::sleep(std::time::Duration::from_millis(100));
     harness.render().unwrap();
 
-    let screen_initial = harness.screen_to_string();
+    let _screen_initial = harness.screen_to_string();
 
     // Navigate down with Alt+J
     harness
@@ -140,8 +135,6 @@ fn test_file_explorer_navigation() {
 /// Test file explorer expand/collapse
 #[test]
 fn test_file_explorer_expand_collapse() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     // Create harness with isolated temp project
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
@@ -193,8 +186,6 @@ fn test_file_explorer_expand_collapse() {
 /// Test opening a file from file explorer
 #[test]
 fn test_file_explorer_open_file() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     // Create harness with isolated temp project
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
@@ -296,8 +287,6 @@ fn test_file_explorer_refresh() {
 /// Test focus switching between file explorer and editor
 #[test]
 fn test_file_explorer_focus_switching() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::new(120, 40).unwrap();
 
     // Open file explorer
@@ -342,8 +331,6 @@ fn test_file_explorer_focus_switching() {
 /// Test that file explorer keybindings only work when explorer has focus
 #[test]
 fn test_file_explorer_context_aware_keybindings() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     // Create harness with isolated temp project
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
@@ -412,8 +399,6 @@ fn test_focus_file_explorer_action() {
 #[test]
 #[ignore = "File explorer directory expansion not working properly - needs investigation of Alt+L keybinding"]
 fn test_file_explorer_displays_opened_file_content() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     // Create harness with isolated temp project
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
@@ -623,8 +608,6 @@ fn test_file_explorer_delete_smoke() {
 /// Test Feature 1: Enter key on directory toggles expand/collapse
 #[test]
 fn test_enter_toggles_directory() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
 
@@ -708,8 +691,6 @@ fn test_enter_toggles_directory() {
 /// Test Feature 2: Enter key on file opens it and switches focus to editor
 #[test]
 fn test_enter_opens_file_and_switches_focus() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
 
@@ -839,8 +820,6 @@ fn test_project_directory_expanded_on_open() {
 /// Test Feature 4: No [D][T] indicators, only show indicators for unsaved changes
 #[test]
 fn test_unsaved_change_indicators() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
 
@@ -950,8 +929,6 @@ fn test_unsaved_change_indicators() {
 /// Test Feature 5: Cursor should reach top before scrolling up (like it does for down)
 #[test]
 fn test_scroll_allows_cursor_to_top() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::with_temp_project(120, 10).unwrap(); // Small height to force scrolling
     let project_root = harness.project_dir().unwrap();
 
@@ -1145,8 +1122,6 @@ fn test_tabs_above_editor_area_only() {
 /// Test Feature 7: Auto-expand and select file on focus switch
 #[test]
 fn test_auto_select_file_on_focus_switch() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
 
@@ -1244,8 +1219,6 @@ fn test_auto_select_file_on_focus_switch() {
 /// Test bug: Explorer sync fails after hide -> tab switch -> show
 #[test]
 fn test_file_explorer_sync_after_hide_and_tab_switch() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
 
@@ -1350,8 +1323,6 @@ fn test_file_explorer_sync_after_hide_and_tab_switch() {
 /// Test that file explorer shows the keybinding for toggling it (or just the title if no binding)
 #[test]
 fn test_file_explorer_shows_keybinding_in_title() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::new(120, 40).unwrap();
 
     // Toggle file explorer on with Ctrl+E
@@ -1390,8 +1361,6 @@ fn test_file_explorer_shows_keybinding_in_title() {
 /// Test that file explorer keybinding is shown when focused (or just title if no binding)
 #[test]
 fn test_file_explorer_keybinding_when_focused() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::new(120, 40).unwrap();
 
     // Toggle file explorer on
@@ -1425,8 +1394,6 @@ fn test_file_explorer_keybinding_when_focused() {
 /// Test that the file explorer can be toggled and the title is present
 #[test]
 fn test_file_explorer_keybinding_matches_behavior() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::new(120, 40).unwrap();
 
     // Toggle file explorer on with Ctrl+E
@@ -1469,8 +1436,6 @@ fn test_file_explorer_keybinding_matches_behavior() {
 /// When in file explorer context, Ctrl+E focuses the editor (keeps explorer open)
 #[test]
 fn test_ctrl_e_toggles_focus_between_explorer_and_editor() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     let mut harness = EditorTestHarness::with_temp_project(120, 40).unwrap();
     let project_root = harness.project_dir().unwrap();
 
@@ -1546,8 +1511,7 @@ fn test_ctrl_e_toggles_focus_between_explorer_and_editor() {
 /// to Normal, so typing would have "No binding found" and do nothing.
 #[test]
 fn test_click_empty_explorer_area_then_editor_allows_typing() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
 
     // Initialize tracing
     let _ = tracing_subscriber::fmt()
@@ -1643,8 +1607,6 @@ fn test_click_empty_explorer_area_then_editor_allows_typing() {
 /// Test that closing the last buffer focuses the file explorer
 #[test]
 fn test_close_last_buffer_focuses_file_explorer() {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
     // Use a fresh editor with no files open initially
     let mut harness = EditorTestHarness::new(120, 40).unwrap();
     harness.render().unwrap();

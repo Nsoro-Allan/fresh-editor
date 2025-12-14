@@ -2844,7 +2844,7 @@ mod tests {
         state.buffer = Buffer::from_str(content, 1024);
         state.cursors.primary_mut().position = cursor_pos.min(state.buffer.len());
         // Create a standalone viewport (no longer part of EditorState)
-        let mut viewport = Viewport::new(20, 4);
+        let viewport = Viewport::new(20, 4);
         // Enable/disable line numbers/gutters based on parameter
         state.margins.left_config.enabled = gutters_enabled;
 

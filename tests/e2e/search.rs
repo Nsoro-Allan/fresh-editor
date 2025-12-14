@@ -1413,7 +1413,7 @@ fn test_status_bar_hidden_during_suggestions() {
 
     // Status bar should be hidden when suggestions are visible
     // The "Palette:" indicator should not be visible
-    let screen_with_suggestions = harness.screen_to_string();
+    let _screen_with_suggestions = harness.screen_to_string();
     // Note: We can't easily verify the status bar is hidden without checking specific positions,
     // but we can verify the suggestions take more screen space
 

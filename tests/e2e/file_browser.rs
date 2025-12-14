@@ -680,7 +680,7 @@ fn test_file_browser_click_navigation() {
 /// Test mouse wheel scrolling in file browser
 #[test]
 fn test_file_browser_mouse_scroll() {
-    use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+    use crossterm::event::{MouseEvent, MouseEventKind};
 
     let temp_dir = TempDir::new().unwrap();
     let project_root = temp_dir.path().to_path_buf();

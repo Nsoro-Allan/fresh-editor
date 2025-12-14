@@ -148,7 +148,7 @@ fn test_mouse_click_on_non_ascii_text() {
 
     // Get the gutter width first by checking where line 1 starts
     // The tab bar is at row 0, first line of text is at row 1
-    let line_row = 1;
+    let _line_row = 1;
 
     // Click at the beginning of the text (after gutter)
     // We need to figure out where the gutter ends

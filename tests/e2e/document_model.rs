@@ -329,7 +329,7 @@ fn test_document_model_search() {
     let state = harness.editor_mut().active_state_mut();
 
     // Test 1: Find all matches of "the" (case-insensitive search would be in buffer layer)
-    let matches = state.find_matches("the", None).unwrap();
+    let _matches = state.find_matches("the", None).unwrap();
 
     // Should find "the" in "the lazy dog" and "The" in "The quick" and "The end"
     // But find_matches uses buffer.find_all which is case-sensitive

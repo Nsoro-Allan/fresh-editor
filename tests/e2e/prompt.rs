@@ -13,7 +13,7 @@ fn test_prompt_rendering() {
     harness.render().unwrap();
 
     // Check that the prompt is visible in the status bar area (bottom line)
-    let screen = harness.screen_to_string();
+    let _screen = harness.screen_to_string();
     harness.assert_screen_contains("Open:");
 
     // Check the prompt styling
@@ -366,7 +366,6 @@ fn test_save_as_relative_path() {
 #[test]
 fn test_save_as_nested_path() {
     use crossterm::event::{KeyCode, KeyModifiers};
-    use std::fs;
 
     let mut harness = EditorTestHarness::with_temp_project(80, 24).unwrap();
     let project_dir = harness.project_dir().unwrap();

@@ -975,7 +975,7 @@ fn test_theme_applied_immediately_after_save() {
         })
         .unwrap();
 
-    let screen = harness.screen_to_string();
+    let _screen = harness.screen_to_string();
 
     // Close the theme editor
     harness

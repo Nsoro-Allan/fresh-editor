@@ -1,7 +1,6 @@
 use crate::common::harness::EditorTestHarness;
 use crossterm::event::{KeyCode, KeyModifiers};
 use fresh::config::Config;
-use tracing_subscriber::prelude::*;
 
 /// Test basic line wrapping rendering
 #[test]
@@ -322,9 +321,6 @@ fn test_wrapped_line_no_horizontal_scroll() {
     );
 }
 
-/// Test cursor position updates correctly as it moves through wrapped lines
-/// Verifies visual cursor moves down to wrapped portions and back up
-#[test]
 /// Test cursor position updates correctly as it moves through wrapped lines
 /// Verifies visual cursor moves down to wrapped portions and back up
 #[test]
@@ -660,10 +656,8 @@ fn test_wrapped_line_scrolling_down_past_viewport() {
 
             // Check if any part of this context is visible on screen
             // (accounting for line breaks)
-            let mut found_context = false;
             for word in context.split_whitespace() {
                 if word.len() >= 3 && screen_now.contains(word) {
-                    found_context = true;
                     eprintln!("  ✓ Found context word '{}' on screen", word);
                     break;
                 }
@@ -976,7 +970,6 @@ fn test_mouse_click_on_wrapped_lines() {
 #[ignore]
 fn test_wrapped_line_cursor_no_empty_space() {
     const TERMINAL_WIDTH: u16 = 60;
-    const GUTTER_WIDTH: u16 = 8;
 
     let mut harness = EditorTestHarness::new(TERMINAL_WIDTH, 24).unwrap();
 
@@ -988,7 +981,7 @@ fn test_wrapped_line_cursor_no_empty_space() {
     harness.send_key(KeyCode::Home, KeyModifiers::NONE).unwrap();
     harness.render().unwrap();
 
-    let (start_x, start_y) = harness.screen_cursor_position();
+    let (_start_x, start_y) = harness.screen_cursor_position();
     eprintln!("\n=== Testing cursor doesn't go into empty space ===");
     eprintln!("Text: '{long_text}'");
     eprintln!("Length: {} chars", long_text.len());

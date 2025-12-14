@@ -370,13 +370,13 @@ fn test_large_file_editing_with_slow_fs() {
     for _ in 0..25 {
         harness.send_key(KeyCode::Down, KeyModifiers::NONE).unwrap();
     }
-    let nav_elapsed = nav_start.elapsed();
+    let _nav_elapsed = nav_start.elapsed();
 
     // Make an edit in the middle
     let edit_start = std::time::Instant::now();
     harness.send_key(KeyCode::End, KeyModifiers::NONE).unwrap();
     harness.type_text(" [EDITED]").unwrap();
-    let edit_elapsed = edit_start.elapsed();
+    let _edit_elapsed = edit_start.elapsed();
 
     // Verify content contains our edit
     let final_content = harness.get_buffer_content().unwrap();

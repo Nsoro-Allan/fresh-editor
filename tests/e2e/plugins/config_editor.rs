@@ -275,7 +275,7 @@ fn test_config_editor_cursor_preserved_after_toggle() {
     }
 
     // Record cursor line before toggle
-    let screen_before = harness.screen_to_string();
+    let _screen_before = harness.screen_to_string();
 
     // Press Tab to toggle the section (expand/collapse)
     harness.send_key(KeyCode::Tab, KeyModifiers::NONE).unwrap();

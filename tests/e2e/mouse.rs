@@ -9,7 +9,7 @@ use std::fs;
 #[test]
 fn test_scrollbar_renders() {
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -76,7 +76,7 @@ fn test_scrollbar_in_multiple_splits() {
 #[test]
 fn test_scrollbar_click_jump() {
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -119,7 +119,7 @@ fn test_scrollbar_click_jump() {
 #[test]
 fn test_scrollbar_drag() {
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -416,7 +416,7 @@ fn test_mouse_click_in_gutter() {
 
     harness.render().unwrap();
 
-    let initial_pos = harness.cursor_position();
+    let _initial_pos = harness.cursor_position();
 
     // Click in the gutter area (line numbers, around column 3)
     harness.mouse_click(3, 3).unwrap();
@@ -610,7 +610,7 @@ fn extract_scrollbar_thumb_info(
 #[test]
 fn test_scrollbar_drag_updates_cursor_position() {
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -683,7 +683,7 @@ fn test_scrollbar_drag_updates_cursor_position() {
 #[test]
 fn test_scrollbar_drag_to_absolute_bottom() {
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()

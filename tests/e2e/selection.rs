@@ -42,7 +42,7 @@ fn test_selection_visual_rendering() {
     assert_eq!(selected_text, "Hello", "Selected text should be 'Hello'");
 
     // Get the screen rendering
-    let screen = harness.screen_to_string();
+    let _screen = harness.screen_to_string();
 
     // The screen should contain the text "Hello World"
     harness.assert_screen_contains("Hello World");
@@ -559,7 +559,7 @@ fn test_select_word_after_scrolling() {
     use crossterm::event::{KeyCode, KeyModifiers};
 
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -616,7 +616,7 @@ fn test_expand_selection_after_scrolling() {
     use crossterm::event::{KeyCode, KeyModifiers};
 
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -1194,7 +1194,7 @@ fn test_select_prev_word_with_special_chars() {
 #[test]
 fn test_select_up() {
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -1318,7 +1318,7 @@ fn test_select_down() {
 #[test]
 fn test_select_up_down_reversal() {
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -1520,7 +1520,7 @@ fn test_select_page_up_down_combination() {
 
     assert!(harness.has_selection());
     let selection_after_page_down = harness.get_selected_text();
-    let lines_down = selection_after_page_down.lines().count();
+    let _lines_down = selection_after_page_down.lines().count();
 
     // Now select page up (should shrink/reverse selection)
     harness

@@ -190,7 +190,7 @@ fn test_horizontal_scrolling() {
 
     // Calculate visible width (80 - 7 for line number gutter = 73 chars)
     let gutter_width = 7;
-    let visible_width = 80 - gutter_width; // 73 characters visible
+    let _visible_width = 80 - gutter_width; // 73 characters visible
 
     // Type characters to fill most of the visible width
     let initial_text = "a".repeat(60);
@@ -285,7 +285,7 @@ fn test_horizontal_scroll_with_arrows() {
     assert_eq!(harness.cursor_position(), 40);
 
     // Viewport should have scrolled left to keep cursor visible
-    let viewport = &harness.editor().active_viewport();
+    let _viewport = &harness.editor().active_viewport();
     let screen_pos = harness.screen_cursor_position();
 
     // Screen cursor should be within visible bounds
@@ -650,7 +650,7 @@ fn test_vertical_scroll_offset() {
     use crossterm::event::{KeyCode, KeyModifiers};
     let mut harness = EditorTestHarness::new(80, 24).unwrap();
 
-    let visible_lines = 22; // Account for tab bar and status bar
+    let _visible_lines = 22; // Account for tab bar and status bar
 
     // Type many lines
     for i in 0..40 {
@@ -865,7 +865,7 @@ fn test_load_big_file_e2e() {
     use std::time::Instant;
 
     // Initialize tracing
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::EnvFilter;
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .with_test_writer()
@@ -1618,7 +1618,8 @@ fn test_scrollbar_invariants_with_file_size(num_lines: usize) {
         }
 
         let screen = harness.screen_to_string();
-        let (start_row, size, _) = extract_scrollbar_info(&screen, terminal_width, terminal_height);
+        let (_start_row, size, _) =
+            extract_scrollbar_info(&screen, terminal_width, terminal_height);
         all_sizes.push(size);
     }
 
@@ -2002,7 +2003,7 @@ fn test_enter_key_maintains_bottom_line_pinned() {
         let top_byte = viewport.top_byte;
 
         // Find where the cursor is on screen
-        let (cursor_x, cursor_y) = harness.screen_cursor_position();
+        let (_cursor_x, cursor_y) = harness.screen_cursor_position();
 
         // The cursor should be on the empty line after the newlines
         // For the invariant: when buffer has more lines than viewport height,

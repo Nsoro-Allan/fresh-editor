@@ -493,7 +493,7 @@ mod tests {
         assert_eq!(chinese_text.chars().count(), 5, "5 Chinese characters");
         assert_eq!(str_width(chinese_text), 10, "10 visual columns");
 
-        let segments = wrap_line(chinese_text, &config);
+        let _segments = wrap_line(chinese_text, &config);
 
         // Current BUGGY behavior: wrap_line thinks 5 chars < 11 width, so no wrap
         // Expected behavior: 10 visual columns < 11 width, so should fit in one line
@@ -804,7 +804,7 @@ mod proptests {
         #[test]
         fn prop_visual_width_consistency(
             n_ascii in 1usize..10,
-            n_wide in 1usize..5,
+            _n_wide in 1usize..5,
         ) {
             // Create ASCII string with n_ascii * 2 characters (each 1 column)
             let ascii_text: String = std::iter::repeat('A').take(n_ascii * 2).collect();

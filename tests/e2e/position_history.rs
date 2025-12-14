@@ -89,7 +89,7 @@ fn test_buffer_switching_creates_history() {
 
     // Create 3 buffers with different content
     harness.type_text("First").unwrap();
-    let first_pos = harness.cursor_position();
+    let _first_pos = harness.cursor_position();
 
     harness
         .send_key(KeyCode::Char('n'), KeyModifiers::CONTROL)

@@ -771,7 +771,7 @@ proptest! {
         let save_path = temp_dir.path().join("saved.txt");
         buffer.save_to_file(&save_path).unwrap();
 
-        let mut reloaded = TextBuffer::load_from_file(&save_path, 0).unwrap();
+        let reloaded = TextBuffer::load_from_file(&save_path, 0).unwrap();
         prop_assert_eq!(reloaded.total_bytes(), 0, "Reloaded buffer should be empty");
     }
 }

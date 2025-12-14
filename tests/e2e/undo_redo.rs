@@ -405,7 +405,6 @@ fn test_undo_past_save_point() {
 /// 5. Undo repeatedly until back to empty buffer
 #[test]
 fn test_undo_to_empty_after_save_as() {
-    use std::fs;
     use tempfile::TempDir;
 
     let temp_dir = TempDir::new().unwrap();

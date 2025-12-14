@@ -51,7 +51,7 @@ fn test_active_tab_visibility_with_scrolling() {
     }
 
     // --- Cycle Forward (Next Buffer) ---
-    for i in 0..NUM_FILES {
+    for _i in 0..NUM_FILES {
         // Cycle through all tabs once
         harness
             .send_key(KeyCode::PageDown, KeyModifiers::CONTROL)
@@ -88,7 +88,7 @@ fn test_active_tab_visibility_with_scrolling() {
     }
 
     // --- Cycle Backward (Prev Buffer) ---
-    for i in 0..NUM_FILES {
+    for _i in 0..NUM_FILES {
         // Cycle through all tabs once
         harness
             .send_key(KeyCode::PageUp, KeyModifiers::CONTROL)
