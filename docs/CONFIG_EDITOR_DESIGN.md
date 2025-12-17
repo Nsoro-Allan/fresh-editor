@@ -828,6 +828,22 @@ The settings panel now includes:
 
 ### Known Bugs (found during testing)
 
+#### Critical UX Gaps (blocking intuitive use)
+
+The following issues make the Settings UI difficult or impossible to use for common tasks:
+
+1. **Complex settings not editable** - Keybinding Maps, Keybindings, Languages, and LSP settings cannot be added/edited through the UI. Users must edit `config.toml` directly for these.
+
+2. **[+] Add new buttons non-functional** - All "Add new" buttons for lists (Keybindings, Languages, Custom Ignore Patterns) do nothing when pressed.
+
+3. **Search is broken** - Search field appears but typed text is not displayed, making search unusable.
+
+4. **No selection indicators** - Users cannot see which setting or category is currently selected. Navigation works but is essentially blind.
+
+5. **Empty Unsaved Changes dialog** - Dialog appears with no changes listed and persists across Settings reopens, blocking normal workflow.
+
+#### Bug Table
+
 | Bug | Severity | Status | Description |
 |-----|----------|--------|-------------|
 | Keybindings not editable | High | Open | Shows `<Complex - edit in config.toml>`. Need table UI for key/modifiers/action entries. |
@@ -835,12 +851,12 @@ The settings panel now includes:
 | Map entry values not editable | High | Open | Map entries show `{N fields}` but expanding/editing individual fields not implemented. |
 | Dropdown editing doesn't work | High | ✅ Fixed | Enter/arrows on dropdown now work correctly. |
 | Number input editing not implemented | High | ✅ Fixed | Enter to edit, type value, Enter to confirm. Left/Right also increment/decrement. |
-| No settings item selection indicator | Medium | Open | Can't see which setting is selected in the settings panel. This makes navigation nearly unusable. |
+| No settings item selection indicator | Medium | Open | Can't see which setting is selected in the settings panel. Only `>` shown for some items (like `[+] Add new`), not on regular settings. |
 | View doesn't scroll to selection | Medium | Open | After search jump, view doesn't scroll to show the selected item. |
-| Search text input broken | High | ✅ Fixed | Settings actions weren't routed to handle_action. |
+| Search text input broken | High | **Regression** | Search field appears (with 🔍 icon) but typed text does not display. Characters are being typed but not shown. |
 | Confirmation dialog empty | Medium | ✅ Fixed | Dialog height calculation was off by 1, causing changes to overlap with separator. |
 | No button selection indicator | Medium | ✅ Fixed | Added ▶ indicator and bold styling for selected button. |
-| No panel focus indicator | Low | Open | Can't visually tell if categories or settings panel has focus. |
+| No panel focus indicator | Low | Open | Can't visually tell if categories or settings panel has focus. Footer panel shows focus (▶) but categories/settings don't. |
 | Terminal captures input when Settings opens | High | ✅ Fixed | Added Settings to popup/prompt check in input routing. Also added OpenSettings to terminal UI actions. |
 | Footer buttons inaccessible via keyboard | High | ✅ Fixed | Added FocusPanel enum with Categories/Settings/Footer states. Tab now cycles through all three panels. Footer buttons now navigable with Left/Right arrows. |
 | Global shortcuts leak through Settings | High | ✅ Fixed | Ctrl+P (palette), Ctrl+Q (quit), etc. were not consumed when Settings was open. Fixed by consuming all unhandled keys in Settings context. |
@@ -848,11 +864,15 @@ The settings panel now includes:
 | "●" indicator unexplained | Low | Open | Some categories show ● with no explanation. Users don't know if it means unsaved changes, errors, etc. |
 | Left/Right for +/- undiscoverable | Low | Open | Arrow keys increment/decrement number fields but help text only shows "↑↓:Navigate". |
 | Cancel in Unsaved Changes dialog closes everything | Medium | Open | "Cancel" should return to Settings, but instead closes the entire dialog like Discard. |
-| [+] Add new buttons don't respond | Medium | Open | Pressing Enter on "[+] Add new" for Keybinding Maps/Languages produces no response. |
-| Empty Unsaved Changes dialog persists | Medium | Open | "You have unsaved changes" dialog appears with no changes listed, persists across Settings reopens. |
+| [+] Add new buttons don't respond | High | Open | Pressing Enter on "[+] Add new" for Keybinding Maps, Keybindings, Languages, and Custom Ignore Patterns produces no response. This prevents adding new items. |
+| Empty Unsaved Changes dialog persists | Medium | Open | "You have unsaved changes" dialog appears with no changes listed, persists across Settings reopens. Must discard to continue. |
 | Dropdown options have no selection indicator | Low | Open | When dropdown is open, no visible highlight shows which option is selected (only preview updates). |
 | Escape doesn't close Settings directly | Low | Open | Help text says "Esc:Close" but Escape only triggers unsaved changes flow, doesn't close directly. |
 | Theme not applied after save | High | ✅ Fixed | save_settings() now updates runtime state (theme, keybindings) after saving config. |
+| Number input appends instead of replaces | Medium | Open | When pressing Enter to edit a number field, typing appends to existing value instead of replacing. User must manually clear with Backspace first. |
+| Category selection indicator missing | Medium | Open | No visual indicator (like `>` or highlight) shows which category is selected in the left panel. Navigation works but is blind. |
+| Language entries not expandable | High | Open | Individual language configurations (extensions, grammar, comment prefix, etc.) cannot be viewed or edited. Only the enabled checkbox is accessible. |
+| No LSP settings section visible | Medium | Open | LSP/Language Server settings mentioned in design doc are not visible. No way to configure LSP servers from Settings UI. |
 
 ### Phase 1: Core Controls Module ✅
 
