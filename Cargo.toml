@@ -1,6 +1,6 @@
 [package]
 name = "fresh-editor"
-version = "0.1.63"
+version = "0.1.64"
 authors = ["Noam Lewis"]
 edition = "2021"
 default-run = "fresh"
