@@ -29,20 +29,21 @@ fn test_shell_command_to_new_buffer() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // Type the sort command
     harness.type_text("sort").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // A new buffer should be created with sorted output
     harness.assert_buffer_content("apple\nbanana\ncherry\n");
@@ -70,20 +71,21 @@ fn test_shell_command_replace_buffer() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command (replace)").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // Type the sort command
     harness.type_text("sort").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // Buffer should be replaced with sorted content
     harness.assert_buffer_content("apple\nbanana\ncherry\n");
@@ -163,20 +165,21 @@ fn test_shell_command_failure() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // Run a command that will fail (exit 1)
     harness.type_text("false").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // Original buffer content should be unchanged when command fails
     // (Error message varies by platform, so we don't check the exact message)
@@ -199,20 +202,21 @@ fn test_shell_command_tr_transform() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command (replace)").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // Transform to uppercase
     harness.type_text("tr a-z A-Z").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // Content should be uppercase
     harness.assert_buffer_content("HELLO WORLD\n");
@@ -237,20 +241,21 @@ fn test_shell_command_replace_undo() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command (replace)").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // Replace with uppercase
     harness.type_text("tr a-z A-Z").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // Verify replaced content
     harness.assert_buffer_content("ORIGINAL CONTENT");
@@ -280,20 +285,21 @@ fn test_shell_command_cat_identity() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // cat should preserve content exactly
     harness.type_text("cat").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // New buffer should have same content
     harness.assert_buffer_content("line 1\nline 2\nline 3\n");
@@ -315,20 +321,21 @@ fn test_shell_command_wc() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // Count words
     harness.type_text("wc -w").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // Should show 5 words
     harness.assert_screen_contains("5");
@@ -371,19 +378,20 @@ fn test_shell_command_replace_preserves_cursor_position() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command (replace)").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     harness.type_text("tr a-z A-Z").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // Verify content is uppercase
     harness.assert_buffer_content("HELLO WORLD\nFOO BAR\nBAZ QUX\n");
@@ -435,20 +443,21 @@ fn test_shell_command_replace_clamps_cursor_when_buffer_shrinks() {
     harness
         .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap();
 
     harness.type_text("shell command (replace)").unwrap();
+    harness.render().unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt().unwrap(); // Wait for shell command input prompt
 
     // Replace with just "short"
     harness.type_text("echo short").unwrap();
     harness
         .send_key(KeyCode::Enter, KeyModifiers::NONE)
         .unwrap();
-    harness.render().unwrap();
+    harness.wait_for_prompt_closed().unwrap();
 
     // Verify content is replaced
     harness.assert_buffer_content("short\n");
