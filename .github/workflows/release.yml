@@ -121,6 +121,10 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # rust-toolchain.toml overrides the targets parameter above, so we need to explicitly add it
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+
       - name: Install cross-compilation tools (Linux ARM)
         if: matrix.cross && matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
