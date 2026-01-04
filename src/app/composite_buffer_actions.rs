@@ -73,7 +73,10 @@ impl Editor {
         self.composite_buffers.insert(buffer_id, composite);
 
         // Add metadata for display
-        let metadata = BufferMetadata::virtual_buffer(name.clone(), mode.clone(), true);
+        // Note: We use virtual_buffer() but override hidden_from_tabs since composite buffers
+        // should be visible in tabs (unlike their hidden source panes)
+        let mut metadata = BufferMetadata::virtual_buffer(name.clone(), mode.clone(), true);
+        metadata.hidden_from_tabs = false;
         self.buffer_metadata.insert(buffer_id, metadata);
 
         // Create an EditorState entry so the buffer can be shown in tabs and via showBuffer()

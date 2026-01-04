@@ -132,9 +132,11 @@ impl Editor {
         }
 
         // If the current buffer is empty and unmodified, replace it instead of creating a new one
+        // Note: Don't replace composite buffers (they appear empty but are special views)
         let replace_current = {
             let current_state = self.buffers.get(&self.active_buffer()).unwrap();
-            current_state.buffer.is_empty()
+            !current_state.is_composite_buffer
+                && current_state.buffer.is_empty()
                 && !current_state.buffer.is_modified()
                 && current_state.buffer.file_path().is_none()
         };
@@ -485,9 +487,11 @@ impl Editor {
         self.position_history.commit_pending_movement();
 
         // If the current buffer is empty and unmodified, replace it instead of creating a new one
+        // Note: Don't replace composite buffers (they appear empty but are special views)
         let replace_current = {
             let current_state = self.buffers.get(&self.active_buffer()).unwrap();
-            current_state.buffer.is_empty()
+            !current_state.is_composite_buffer
+                && current_state.buffer.is_empty()
                 && !current_state.buffer.is_modified()
                 && current_state.buffer.file_path().is_none()
         };
