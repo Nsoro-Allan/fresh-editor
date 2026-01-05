@@ -120,6 +120,16 @@ impl CommandRegistry {
     ) -> Vec<Suggestion> {
         let commands = self.get_all();
 
+        // Helper function to check if command should be visible (custom context check)
+        // Commands with unmet custom contexts are completely hidden, not just disabled
+        let is_visible = |cmd: &Command| -> bool {
+            cmd.custom_contexts.is_empty()
+                || cmd
+                    .custom_contexts
+                    .iter()
+                    .all(|ctx| active_custom_contexts.contains(ctx))
+        };
+
         // Helper function to check if command is available in current context
         let is_available = |cmd: &Command| -> bool {
             // Global commands are always available
@@ -128,16 +138,7 @@ impl CommandRegistry {
             }
 
             // Check built-in contexts
-            let builtin_ok = cmd.contexts.is_empty() || cmd.contexts.contains(&current_context);
-
-            // Check custom contexts - all required custom contexts must be active
-            let custom_ok = cmd.custom_contexts.is_empty()
-                || cmd
-                    .custom_contexts
-                    .iter()
-                    .all(|ctx| active_custom_contexts.contains(ctx));
-
-            builtin_ok && custom_ok
+            cmd.contexts.is_empty() || cmd.contexts.contains(&current_context)
         };
 
         // Helper to create a suggestion from a command
@@ -162,8 +163,10 @@ impl CommandRegistry {
             };
 
         // First, try to match by name only
+        // Commands with unmet custom contexts are completely hidden
         let mut suggestions: Vec<(Suggestion, Option<usize>, i32)> = commands
             .iter()
+            .filter(|cmd| is_visible(cmd))
             .filter_map(|cmd| {
                 let localized_name = cmd.get_localized_name();
                 let name_result = fuzzy_match(query, &localized_name);
@@ -185,6 +188,7 @@ impl CommandRegistry {
         if suggestions.is_empty() && !query.is_empty() {
             suggestions = commands
                 .iter()
+                .filter(|cmd| is_visible(cmd))
                 .filter_map(|cmd| {
                     let localized_desc = cmd.get_localized_description();
                     let desc_result = fuzzy_match(query, &localized_desc);
