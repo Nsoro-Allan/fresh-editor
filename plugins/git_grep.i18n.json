@@ -12,18 +12,18 @@
     "status.no_selection": "No file selected",
     "status.cancelled": "Git grep cancelled"
   },
-  "es": {
+  "cs": {
     "cmd.grep": "Git Grep",
-    "cmd.grep_desc": "Buscar texto en archivos rastreados por git",
+    "cmd.grep_desc": "Hledat text v souborech sledovanych gitem",
     "prompt.grep": "Git grep: ",
-    "status.ready": "Plugin Git Grep listo",
-    "status.type_to_search": "Escribe para buscar...",
-    "status.found": "Encontradas %{count} coincidencias",
-    "status.no_matches": "No se encontraron coincidencias",
-    "status.error": "Error de git grep: %{error}",
-    "status.opened": "Abierto %{location}",
-    "status.no_selection": "Ningún archivo seleccionado",
-    "status.cancelled": "Git grep cancelado"
+    "status.ready": "Plugin Git Grep pripraven",
+    "status.type_to_search": "Piste pro hledani...",
+    "status.found": "Nalezeno %{count} shod",
+    "status.no_matches": "Zadne shody nenalezeny",
+    "status.error": "Chyba git grep: %{error}",
+    "status.opened": "Otevreno: %{location}",
+    "status.no_selection": "Zadny soubor nevybran",
+    "status.cancelled": "Git grep zrusen"
   },
   "de": {
     "cmd.grep": "Git Grep",
@@ -34,22 +34,35 @@
     "status.found": "%{count} Treffer gefunden",
     "status.no_matches": "Keine Treffer gefunden",
     "status.error": "Git grep Fehler: %{error}",
-    "status.opened": "Geöffnet: %{location}",
-    "status.no_selection": "Keine Datei ausgewählt",
+    "status.opened": "Geoeffnet: %{location}",
+    "status.no_selection": "Keine Datei ausgewaehlt",
     "status.cancelled": "Git grep abgebrochen"
+  },
+  "es": {
+    "cmd.grep": "Git Grep",
+    "cmd.grep_desc": "Buscar texto en archivos rastreados por git",
+    "prompt.grep": "Git grep: ",
+    "status.ready": "Plugin Git Grep listo",
+    "status.type_to_search": "Escribe para buscar...",
+    "status.found": "Encontradas %{count} coincidencias",
+    "status.no_matches": "No se encontraron coincidencias",
+    "status.error": "Error de git grep: %{error}",
+    "status.opened": "Abierto %{location}",
+    "status.no_selection": "Ningun archivo seleccionado",
+    "status.cancelled": "Git grep cancelado"
   },
   "fr": {
     "cmd.grep": "Git Grep",
     "cmd.grep_desc": "Rechercher du texte dans les fichiers suivis par git",
     "prompt.grep": "Git grep: ",
-    "status.ready": "Plugin Git Grep prêt",
+    "status.ready": "Plugin Git Grep pret",
     "status.type_to_search": "Tapez pour rechercher...",
-    "status.found": "%{count} correspondances trouvées",
-    "status.no_matches": "Aucune correspondance trouvée",
+    "status.found": "%{count} correspondances trouvees",
+    "status.no_matches": "Aucune correspondance trouvee",
     "status.error": "Erreur git grep: %{error}",
     "status.opened": "Ouvert: %{location}",
-    "status.no_selection": "Aucun fichier sélectionné",
-    "status.cancelled": "Git grep annulé"
+    "status.no_selection": "Aucun fichier selectionne",
+    "status.cancelled": "Git grep annule"
   },
   "ja": {
     "cmd.grep": "Git Grep",
@@ -63,6 +76,71 @@
     "status.opened": "開きました: %{location}",
     "status.no_selection": "ファイルが選択されていません",
     "status.cancelled": "Git grepキャンセル"
+  },
+  "ko": {
+    "cmd.grep": "Git Grep",
+    "cmd.grep_desc": "Git 추적 파일에서 텍스트 검색",
+    "prompt.grep": "Git grep: ",
+    "status.ready": "Git Grep 플러그인 준비됨",
+    "status.type_to_search": "검색어를 입력하세요...",
+    "status.found": "%{count}개 일치 항목 찾음",
+    "status.no_matches": "일치 항목 없음",
+    "status.error": "Git grep 오류: %{error}",
+    "status.opened": "열림: %{location}",
+    "status.no_selection": "선택된 파일 없음",
+    "status.cancelled": "Git grep 취소됨"
+  },
+  "pt-BR": {
+    "cmd.grep": "Git Grep",
+    "cmd.grep_desc": "Pesquisar texto em arquivos rastreados pelo git",
+    "prompt.grep": "Git grep: ",
+    "status.ready": "Plugin Git Grep pronto",
+    "status.type_to_search": "Digite para pesquisar...",
+    "status.found": "Encontradas %{count} correspondencias",
+    "status.no_matches": "Nenhuma correspondencia encontrada",
+    "status.error": "Erro git grep: %{error}",
+    "status.opened": "Aberto: %{location}",
+    "status.no_selection": "Nenhum arquivo selecionado",
+    "status.cancelled": "Git grep cancelado"
+  },
+  "ru": {
+    "cmd.grep": "Git Grep",
+    "cmd.grep_desc": "Poiskat' tekst v faylakh otslezhivaemykh git",
+    "prompt.grep": "Git grep: ",
+    "status.ready": "Plugin Git Grep gotov",
+    "status.type_to_search": "Vvedite dlya poiska...",
+    "status.found": "Naydeno %{count} sovpadeniy",
+    "status.no_matches": "Sovpadeniya ne naydeny",
+    "status.error": "Oshibka git grep: %{error}",
+    "status.opened": "Otkryto: %{location}",
+    "status.no_selection": "Fayl ne vybran",
+    "status.cancelled": "Git grep otmenen"
+  },
+  "th": {
+    "cmd.grep": "Git Grep",
+    "cmd.grep_desc": "ค้นหาข้อความในไฟล์ที่ git ติดตาม",
+    "prompt.grep": "Git grep: ",
+    "status.ready": "ปลั๊กอิน Git Grep พร้อมใช้งาน",
+    "status.type_to_search": "พิมพ์เพื่อค้นหา...",
+    "status.found": "พบ %{count} รายการที่ตรงกัน",
+    "status.no_matches": "ไม่พบรายการที่ตรงกัน",
+    "status.error": "ข้อผิดพลาด git grep: %{error}",
+    "status.opened": "เปิดแล้ว: %{location}",
+    "status.no_selection": "ไม่ได้เลือกไฟล์",
+    "status.cancelled": "ยกเลิก git grep"
+  },
+  "uk": {
+    "cmd.grep": "Git Grep",
+    "cmd.grep_desc": "Shukaty tekst u faylakh vidstezhuvanyikh git",
+    "prompt.grep": "Git grep: ",
+    "status.ready": "Plahin Git Grep hotovyy",
+    "status.type_to_search": "Vvedit' dlya poshuku...",
+    "status.found": "Znaydeno %{count} zbihiv",
+    "status.no_matches": "Zbihiv ne znaydeno",
+    "status.error": "Pomylka git grep: %{error}",
+    "status.opened": "Vidkryto: %{location}",
+    "status.no_selection": "Fayl ne vybrano",
+    "status.cancelled": "Git grep skasovano"
   },
   "zh-CN": {
     "cmd.grep": "Git Grep",

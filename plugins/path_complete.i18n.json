@@ -5,21 +5,27 @@
     "suggestion.new_file": "%{filename} (new file)",
     "suggestion.new_file_desc": "File does not exist yet"
   },
-  "es": {
-    "status.loaded": "Plugin de autocompletado de rutas cargado correctamente",
-    "suggestion.directory": "directorio",
-    "suggestion.new_file": "%{filename} (archivo nuevo)",
-    "suggestion.new_file_desc": "El archivo aún no existe"
+  "cs": {
+    "status.loaded": "Plugin pro doplnovani cest uspesne nacten",
+    "suggestion.directory": "adresar",
+    "suggestion.new_file": "%{filename} (novy soubor)",
+    "suggestion.new_file_desc": "Soubor zatim neexistuje"
   },
   "de": {
-    "status.loaded": "Pfadvervollständigungs-Plugin erfolgreich geladen",
+    "status.loaded": "Pfadvervollstandigungs-Plugin erfolgreich geladen",
     "suggestion.directory": "Verzeichnis",
     "suggestion.new_file": "%{filename} (neue Datei)",
     "suggestion.new_file_desc": "Datei existiert noch nicht"
   },
+  "es": {
+    "status.loaded": "Plugin de autocompletado de rutas cargado correctamente",
+    "suggestion.directory": "directorio",
+    "suggestion.new_file": "%{filename} (archivo nuevo)",
+    "suggestion.new_file_desc": "El archivo aun no existe"
+  },
   "fr": {
-    "status.loaded": "Plugin de complétion de chemin chargé avec succès",
-    "suggestion.directory": "répertoire",
+    "status.loaded": "Plugin de completion de chemin charge avec succes",
+    "suggestion.directory": "repertoire",
     "suggestion.new_file": "%{filename} (nouveau fichier)",
     "suggestion.new_file_desc": "Le fichier n'existe pas encore"
   },
@@ -28,6 +34,36 @@
     "suggestion.directory": "ディレクトリ",
     "suggestion.new_file": "%{filename} (新規ファイル)",
     "suggestion.new_file_desc": "ファイルはまだ存在しません"
+  },
+  "ko": {
+    "status.loaded": "경로 자동완성 플러그인이 성공적으로 로드되었습니다",
+    "suggestion.directory": "디렉토리",
+    "suggestion.new_file": "%{filename} (새 파일)",
+    "suggestion.new_file_desc": "파일이 아직 존재하지 않습니다"
+  },
+  "pt-BR": {
+    "status.loaded": "Plugin de autocompletar caminho carregado com sucesso",
+    "suggestion.directory": "diretorio",
+    "suggestion.new_file": "%{filename} (novo arquivo)",
+    "suggestion.new_file_desc": "O arquivo ainda nao existe"
+  },
+  "ru": {
+    "status.loaded": "Плагин автодополнения пути успешно загружен",
+    "suggestion.directory": "каталог",
+    "suggestion.new_file": "%{filename} (новый файл)",
+    "suggestion.new_file_desc": "Файл еще не существует"
+  },
+  "th": {
+    "status.loaded": "โหลดปลั๊กอินเติมเส้นทางสำเร็จ",
+    "suggestion.directory": "ไดเรกทอรี",
+    "suggestion.new_file": "%{filename} (ไฟล์ใหม่)",
+    "suggestion.new_file_desc": "ไฟล์ยังไม่มีอยู่"
+  },
+  "uk": {
+    "status.loaded": "Плагін автодоповнення шляху успішно завантажено",
+    "suggestion.directory": "каталог",
+    "suggestion.new_file": "%{filename} (новий файл)",
+    "suggestion.new_file_desc": "Файл ще не існує"
   },
   "zh-CN": {
     "status.loaded": "路径补全插件加载成功",

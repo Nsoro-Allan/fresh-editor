@@ -6,26 +6,33 @@
     "status.no_file": "Git Gutter: No file open",
     "status.changes": "Git Gutter: %{count} change(s) detected"
   },
+  "cs": {
+    "cmd.refresh": "Git Gutter: Obnovit",
+    "cmd.refresh_desc": "Obnovit indikatory git gutter pro aktualni buffer",
+    "status.ready": "Plugin Git Gutter pripraven",
+    "status.no_file": "Git Gutter: Zadny soubor neni otevren",
+    "status.changes": "Git Gutter: Detekovano %{count} zmen(y)"
+  },
+  "de": {
+    "cmd.refresh": "Git Gutter: Aktualisieren",
+    "cmd.refresh_desc": "Git Gutter-Indikatoren fuer den aktuellen Buffer aktualisieren",
+    "status.ready": "Git Gutter Plugin bereit",
+    "status.no_file": "Git Gutter: Keine Datei geoeffnet",
+    "status.changes": "Git Gutter: %{count} Aenderung(en) erkannt"
+  },
   "es": {
     "cmd.refresh": "Git Gutter: Actualizar",
     "cmd.refresh_desc": "Actualizar indicadores de git gutter para el buffer actual",
     "status.ready": "Plugin Git Gutter listo",
-    "status.no_file": "Git Gutter: Ningún archivo abierto",
+    "status.no_file": "Git Gutter: Ningun archivo abierto",
     "status.changes": "Git Gutter: %{count} cambio(s) detectado(s)"
   },
-  "de": {
-    "cmd.refresh": "Git Gutter: Aktualisieren",
-    "cmd.refresh_desc": "Git Gutter-Indikatoren für den aktuellen Buffer aktualisieren",
-    "status.ready": "Git Gutter Plugin bereit",
-    "status.no_file": "Git Gutter: Keine Datei geöffnet",
-    "status.changes": "Git Gutter: %{count} Änderung(en) erkannt"
-  },
   "fr": {
-    "cmd.refresh": "Git Gutter: Rafraîchir",
-    "cmd.refresh_desc": "Rafraîchir les indicateurs git gutter pour le tampon actuel",
-    "status.ready": "Plugin Git Gutter prêt",
+    "cmd.refresh": "Git Gutter: Rafraichir",
+    "cmd.refresh_desc": "Rafraichir les indicateurs git gutter pour le tampon actuel",
+    "status.ready": "Plugin Git Gutter pret",
     "status.no_file": "Git Gutter: Aucun fichier ouvert",
-    "status.changes": "Git Gutter: %{count} modification(s) détectée(s)"
+    "status.changes": "Git Gutter: %{count} modification(s) detectee(s)"
   },
   "ja": {
     "cmd.refresh": "Git Gutter: 更新",
@@ -33,6 +40,41 @@
     "status.ready": "Git Gutterプラグイン準備完了",
     "status.no_file": "Git Gutter: ファイルが開かれていません",
     "status.changes": "Git Gutter: %{count}件の変更を検出"
+  },
+  "ko": {
+    "cmd.refresh": "Git Gutter: 새로고침",
+    "cmd.refresh_desc": "현재 버퍼의 Git Gutter 표시기 새로고침",
+    "status.ready": "Git Gutter 플러그인 준비됨",
+    "status.no_file": "Git Gutter: 열린 파일 없음",
+    "status.changes": "Git Gutter: %{count}개 변경 감지됨"
+  },
+  "pt-BR": {
+    "cmd.refresh": "Git Gutter: Atualizar",
+    "cmd.refresh_desc": "Atualizar indicadores git gutter para o buffer atual",
+    "status.ready": "Plugin Git Gutter pronto",
+    "status.no_file": "Git Gutter: Nenhum arquivo aberto",
+    "status.changes": "Git Gutter: %{count} alteracao(oes) detectada(s)"
+  },
+  "ru": {
+    "cmd.refresh": "Git Gutter: Obnovit'",
+    "cmd.refresh_desc": "Obnovit' indikatory git gutter dlya tekushchego bufera",
+    "status.ready": "Plugin Git Gutter gotov",
+    "status.no_file": "Git Gutter: Net otkrytogo fayla",
+    "status.changes": "Git Gutter: Obnaruzheno %{count} izmenenie(iy)"
+  },
+  "th": {
+    "cmd.refresh": "Git Gutter: รีเฟรช",
+    "cmd.refresh_desc": "รีเฟรชตัวบ่งชี้ git gutter สำหรับบัฟเฟอร์ปัจจุบัน",
+    "status.ready": "ปลั๊กอิน Git Gutter พร้อมใช้งาน",
+    "status.no_file": "Git Gutter: ไม่มีไฟล์เปิดอยู่",
+    "status.changes": "Git Gutter: ตรวจพบ %{count} การเปลี่ยนแปลง"
+  },
+  "uk": {
+    "cmd.refresh": "Git Gutter: Onovyty",
+    "cmd.refresh_desc": "Onovyty indykatory git gutter dlya potochnoho bufera",
+    "status.ready": "Plahin Git Gutter hotovyy",
+    "status.no_file": "Git Gutter: Nemaye vidkrytoho faylu",
+    "status.changes": "Git Gutter: Vyyavleno %{count} zmin(y)"
   },
   "zh-CN": {
     "cmd.refresh": "Git Gutter: 刷新",
