@@ -1,22 +1,31 @@
 /// <reference path="./lib/fresh.d.ts" />
 
-import { ResultsPanel, ResultItem, getRelativePath } from "./lib/results-panel.ts";
+import {
+  ResultsPanel,
+  ResultItem,
+  createStaticProvider,
+  getRelativePath,
+} from "./lib/results-panel.ts";
 
 const editor = getEditor();
 
 /**
  * Find References Plugin
  *
- * Displays LSP find references results using the ResultsPanel abstraction.
- * The plugin provides data (reference locations) and the ResultsPanel
- * handles all UI concerns (navigation, selection highlighting, keybindings).
+ * Displays LSP find references results using the ResultsPanel abstraction
+ * with VS Code-inspired Provider pattern.
+ *
+ * Key features:
+ * - Provider pattern for live data channel
+ * - syncWithEditor for bidirectional cursor sync
+ * - groupBy: "file" for organized display
  */
 
 // Maximum number of results to display
 const MAX_RESULTS = 100;
 
 // Reference item structure from LSP
-interface ReferenceItem {
+interface ReferenceLocation {
   file: string;
   line: number;
   column: number;
@@ -25,13 +34,22 @@ interface ReferenceItem {
 // Line text cache for previews
 const lineCache: Map<string, string[]> = new Map();
 
-// Create the results panel
-const panel = new ResultsPanel(editor, "references", {
+// Create a static provider (Find References is a snapshot, not live data)
+const provider = createStaticProvider<ResultItem>();
+
+// Create the panel with Provider pattern
+const panel = new ResultsPanel(editor, "references", provider, {
+  title: "References", // Will be updated when showing
+  syncWithEditor: true, // Enable bidirectional cursor sync!
+  groupBy: "file", // Group by file for better organization
   ratio: 0.7,
   onSelect: (item) => {
     if (item.location) {
-      // Open file in source split, keeping focus on panel
-      panel.openInSource(item.location.file, item.location.line, item.location.column);
+      panel.openInSource(
+        item.location.file,
+        item.location.line,
+        item.location.column
+      );
       const displayPath = getRelativePath(editor, item.location.file);
       editor.setStatus(`Jumped to ${displayPath}:${item.location.line}`);
     }
@@ -44,11 +62,13 @@ const panel = new ResultsPanel(editor, "references", {
 /**
  * Load line text for references (for preview display)
  */
-async function loadLineTexts(references: ReferenceItem[]): Promise<Map<string, string>> {
+async function loadLineTexts(
+  references: ReferenceLocation[]
+): Promise<Map<string, string>> {
   const lineTexts = new Map<string, string>();
 
   // Group references by file
-  const fileRefs: Map<string, ReferenceItem[]> = new Map();
+  const fileRefs: Map<string, ReferenceLocation[]> = new Map();
   for (const ref of references) {
     if (!fileRefs.has(ref.file)) {
       fileRefs.set(ref.file, []);
@@ -85,29 +105,29 @@ async function loadLineTexts(references: ReferenceItem[]): Promise<Map<string, s
  * Convert LSP references to ResultItems for display
  */
 function referencesToItems(
-  references: ReferenceItem[],
+  references: ReferenceLocation[],
   lineTexts: Map<string, string>
 ): ResultItem[] {
-  return references.map(ref => {
+  return references.map((ref, index) => {
     const displayPath = getRelativePath(editor, ref.file);
     const key = `${ref.file}:${ref.line}:${ref.column}`;
     const lineText = lineTexts.get(key) || "";
     const trimmedLine = lineText.trim();
 
-    // Format: "path:line:col  preview"
-    const location = `${displayPath}:${ref.line}:${ref.column}`;
-    const maxLocationLen = 50;
-    const truncatedLocation = location.length > maxLocationLen
-      ? "..." + location.slice(-(maxLocationLen - 3))
-      : location;
+    // Format label as "line:col"
+    const label = `${ref.line}:${ref.column}`;
 
-    const maxPreviewLen = 50;
-    const preview = trimmedLine.length > maxPreviewLen
-      ? trimmedLine.slice(0, maxPreviewLen - 3) + "..."
-      : trimmedLine;
+    // Preview text
+    const maxPreviewLen = 60;
+    const preview =
+      trimmedLine.length > maxPreviewLen
+        ? trimmedLine.slice(0, maxPreviewLen - 3) + "..."
+        : trimmedLine;
 
     return {
-      label: truncatedLocation,
+      // Unique ID for reveal/sync
+      id: `ref-${index}-${ref.file}-${ref.line}-${ref.column}`,
+      label: label,
       description: preview,
       location: {
         file: ref.file,
@@ -121,7 +141,10 @@ function referencesToItems(
 /**
  * Show references panel with the given results
  */
-async function showReferences(symbol: string, references: ReferenceItem[]): Promise<void> {
+async function showReferences(
+  symbol: string,
+  references: ReferenceLocation[]
+): Promise<void> {
   // Limit results
   const limitedRefs = references.slice(0, MAX_RESULTS);
 
@@ -132,21 +155,26 @@ async function showReferences(symbol: string, references: ReferenceItem[]): Prom
   // Convert to ResultItems
   const items = referencesToItems(limitedRefs, lineTexts);
 
-  // Build title
+  // Update panel title dynamically
   const count = references.length;
-  const limitNote = count > MAX_RESULTS ? ` (showing first ${MAX_RESULTS})` : "";
-  const title = `References to '${symbol}': ${count}${limitNote}`;
+  const limitNote = count > MAX_RESULTS ? ` (first ${MAX_RESULTS})` : "";
+  (panel as { options: { title: string } }).options.title =
+    `References to '${symbol}': ${count}${limitNote}`;
 
-  // Show panel
-  await panel.show({
-    title,
-    items,
-    helpText: "Enter:goto | Esc:close",
-  });
+  // Update provider with new items (triggers panel refresh if open)
+  provider.updateItems(items);
+
+  // Show panel if not already open
+  if (!panel.isOpen) {
+    await panel.show();
+  }
 }
 
 // Handle lsp_references hook
-globalThis.on_lsp_references = function(data: { symbol: string; locations: ReferenceItem[] }): void {
+globalThis.on_lsp_references = function (data: {
+  symbol: string;
+  locations: ReferenceLocation[];
+}): void {
   editor.debug(`Received ${data.locations.length} references for '${data.symbol}'`);
 
   if (data.locations.length === 0) {
@@ -161,7 +189,7 @@ globalThis.on_lsp_references = function(data: { symbol: string; locations: Refer
 editor.on("lsp_references", "on_lsp_references");
 
 // Export close function for command palette
-globalThis.hide_references_panel = function(): void {
+globalThis.hide_references_panel = function (): void {
   panel.close();
 };
 
@@ -182,4 +210,4 @@ editor.registerCommand(
 
 // Plugin initialization
 editor.setStatus("Find References plugin ready");
-editor.debug("Find References plugin initialized");
+editor.debug("Find References plugin initialized (Provider pattern v2)");
