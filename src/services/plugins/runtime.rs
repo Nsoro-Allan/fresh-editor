@@ -6978,11 +6978,10 @@ mod tests {
         let receiver = handle.execute_action_async("show_git_log").unwrap();
 
         // Simulate editor event loop: process commands while action runs
+        // Note: No internal timeout - cargo nextest handles external timeout per README guidelines
         let mut completed = false;
-        let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(10);
 
-        while !completed && start.elapsed() < timeout {
+        while !completed {
             // Process any commands from the plugin
             let cmds = handle.process_commands();
             for cmd in cmds {
@@ -7027,10 +7026,6 @@ mod tests {
                     panic!("Action receiver disconnected");
                 }
             }
-        }
-
-        if !completed {
-            panic!("Test timed out waiting for show_git_log to complete");
         }
 
         // Shutdown
@@ -7091,11 +7086,10 @@ mod tests {
         let receiver = handle.execute_action_async("test_spawn").unwrap();
 
         // Wait for completion while processing commands
+        // Note: No internal timeout - cargo nextest handles external timeout per README guidelines
         let mut completed = false;
-        let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(5);
 
-        while !completed && start.elapsed() < timeout {
+        while !completed {
             let _cmds = handle.process_commands();
             match receiver.try_recv() {
                 Ok(result) => {
@@ -7112,10 +7106,6 @@ mod tests {
                     panic!("Action receiver disconnected");
                 }
             }
-        }
-
-        if !completed {
-            panic!("Test timed out");
         }
 
         // Shutdown
@@ -7178,11 +7168,10 @@ mod tests {
         let receiver = handle.execute_action_async("test_git").unwrap();
 
         // Wait for completion while processing commands
+        // Note: No internal timeout - cargo nextest handles external timeout per README guidelines
         let mut completed = false;
-        let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(5);
 
-        while !completed && start.elapsed() < timeout {
+        while !completed {
             let _cmds = handle.process_commands();
             match receiver.try_recv() {
                 Ok(result) => {
@@ -7199,10 +7188,6 @@ mod tests {
                     panic!("Action receiver disconnected");
                 }
             }
-        }
-
-        if !completed {
-            panic!("Test timed out");
         }
 
         // Shutdown
@@ -7277,11 +7262,10 @@ mod tests {
         let receiver = handle.execute_action_async("test_vbuf").unwrap();
 
         // Simulate editor event loop: process commands while action runs
+        // Note: No internal timeout - cargo nextest handles external timeout per README guidelines
         let mut completed = false;
-        let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(5);
 
-        while !completed && start.elapsed() < timeout {
+        while !completed {
             // Process any commands from the plugin
             let cmds = handle.process_commands();
             for cmd in cmds {
@@ -7330,10 +7314,6 @@ mod tests {
                     panic!("Action receiver disconnected");
                 }
             }
-        }
-
-        if !completed {
-            panic!("Test timed out waiting for action to complete");
         }
 
         // Shutdown
