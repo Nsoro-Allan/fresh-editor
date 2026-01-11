@@ -752,7 +752,6 @@ fn render_setting_item_pure(
         control_area,
         &item.control,
         &item.name,
-        item.modified,
         skip_top,
         theme,
         label_width.map(|w| w.saturating_sub(focus_indicator_width)),
@@ -832,7 +831,6 @@ fn render_setting_item_pure(
 ///
 /// # Arguments
 /// * `name` - Setting name (for controls that render their own label)
-/// * `modified` - Whether the setting has been modified from default
 /// * `skip_rows` - Number of rows to skip at top of control (for partial visibility)
 /// * `label_width` - Optional label width for column alignment
 /// * `read_only` - Whether this field is read-only (displays as plain text instead of input)
@@ -841,7 +839,6 @@ fn render_control(
     area: Rect,
     control: &SettingControl,
     name: &str,
-    modified: bool,
     skip_rows: u16,
     theme: &Theme,
     label_width: Option<u16>,
@@ -944,27 +941,25 @@ fn render_control(
                 delete_fg: theme.diagnostic_error_fg,
                 add_fg: theme.syntax_string,
             };
-            let kb_layout =
-                render_keybinding_list_partial(frame, area, state, &colors, skip_rows, modified);
+            let kb_layout = render_keybinding_list_partial(frame, area, state, &colors, skip_rows);
             ControlLayoutInfo::ObjectArray {
                 entry_rows: kb_layout.entry_rects,
             }
         }
 
         SettingControl::Json(state) => {
-            render_json_control(frame, area, state, name, modified, skip_rows, theme)
+            render_json_control(frame, area, state, name, skip_rows, theme)
         }
 
         SettingControl::Complex { type_name } => {
             if skip_rows > 0 {
                 return ControlLayoutInfo::Complex;
             }
-            // Render label with modified indicator
+            // Render label (modified indicator is shown in the row indicator column)
             let label_style = Style::default().fg(theme.editor_fg);
             let value_style = Style::default().fg(theme.line_number_fg);
-            let modified_indicator = if modified { "• " } else { "" };
 
-            let label = Span::styled(format!("{}{}: ", modified_indicator, name), label_style);
+            let label = Span::styled(format!("{}: ", name), label_style);
             let value = Span::styled(
                 format!("<{} - edit in config.toml>", type_name),
                 value_style,
@@ -982,7 +977,6 @@ fn render_json_control(
     area: Rect,
     state: &super::items::JsonEditState,
     name: &str,
-    modified: bool,
     skip_rows: u16,
     theme: &Theme,
 ) -> ControlLayoutInfo {
@@ -1017,11 +1011,10 @@ fn render_json_control(
     let mut y = area.y;
     let mut content_row = 0u16;
 
-    // Row 0: label
+    // Row 0: label (modified indicator is shown in the row indicator column)
     if content_row >= skip_rows {
-        let modified_indicator = if modified { "• " } else { "" };
         let label_line = Line::from(vec![Span::styled(
-            format!("{}{}:", modified_indicator, name),
+            format!("{}:", name),
             Style::default().fg(label_color),
         )]);
         frame.render_widget(
@@ -1528,7 +1521,6 @@ fn render_keybinding_list_partial(
     state: &crate::view::controls::KeybindingListState,
     colors: &crate::view::controls::KeybindingListColors,
     skip_rows: u16,
-    modified: bool,
 ) -> crate::view::controls::KeybindingListLayout {
     use crate::view::controls::keybinding_list::format_key_combo;
     use crate::view::controls::FocusState;
@@ -1552,11 +1544,10 @@ fn render_keybinding_list_partial(
     let mut content_row = 0u16;
     let mut y = area.y;
 
-    // Render label (row 0)
+    // Render label (row 0) - modified indicator is shown in the row indicator column
     if content_row >= skip_rows {
-        let modified_indicator = if modified { "• " } else { "" };
         let label_line = Line::from(vec![Span::styled(
-            format!("{}{}:", modified_indicator, state.label),
+            format!("{}:", state.label),
             Style::default().fg(colors.label_fg),
         )]);
         frame.render_widget(
@@ -2579,8 +2570,11 @@ fn render_entry_dialog(
             }
         }
 
-        // Render focus indicator ">" for the focused item (only for editable items)
-        let focus_indicator_width: u16 = 2; // "> "
+        // Indicator area takes 3 chars: [>][●][ ] -> focus, modified, separator
+        // Examples: ">● ", ">  ", " ● ", "   "
+        let focus_indicator_width: u16 = 3;
+
+        // Render focus indicator ">" at position 0 for the focused item
         if is_focused && skip_rows == 0 {
             let indicator_style = Style::default()
                 .fg(theme.menu_highlight_fg)
@@ -2588,6 +2582,15 @@ fn render_entry_dialog(
             frame.render_widget(
                 Paragraph::new(">").style(indicator_style),
                 Rect::new(inner.x, screen_y, 1, 1),
+            );
+        }
+
+        // Render modified indicator "●" at position 1 for modified items
+        if item.modified && skip_rows == 0 {
+            let modified_style = Style::default().fg(theme.menu_highlight_fg);
+            frame.render_widget(
+                Paragraph::new("●").style(modified_style),
+                Rect::new(inner.x + 1, screen_y, 1, 1),
             );
         }
 
@@ -2605,7 +2608,6 @@ fn render_entry_dialog(
             control_area,
             &item.control,
             &item.name,
-            item.modified,
             skip_rows,
             theme,
             Some(label_col_width.saturating_sub(focus_indicator_width)),

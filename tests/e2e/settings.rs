@@ -1948,15 +1948,26 @@ fn test_entry_dialog_focus_indicator() {
 
     // The focused field should have a ">" indicator
     // First editable field (Auto Indent) should be focused by default
-    // Format: ">  " (3-char indicator area: focus, modified, space)
-    harness.assert_screen_contains(">  Auto Indent");
+    // Format: ">  " or ">● " (3-char indicator area: focus, modified, space)
+    let screen = harness.screen_to_string();
+    assert!(
+        screen.contains(">  Auto Indent") || screen.contains(">● Auto Indent"),
+        "Focus indicator '>' should appear before Auto Indent. Screen:\n{}",
+        screen
+    );
 
     // Navigate down to next editable field
     harness.send_key(KeyCode::Down, KeyModifiers::NONE).unwrap();
     harness.render().unwrap();
 
     // Now "Comment Prefix" should be focused with ">" indicator
-    harness.assert_screen_contains(">  Comment Prefix");
+    // May have modified indicator if value differs from default
+    let screen = harness.screen_to_string();
+    assert!(
+        screen.contains(">  Comment Prefix") || screen.contains(">● Comment Prefix"),
+        "Focus indicator '>' should appear before Comment Prefix. Screen:\n{}",
+        screen
+    );
 
     // Close dialog
     harness.send_key(KeyCode::Esc, KeyModifiers::NONE).unwrap();
