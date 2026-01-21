@@ -66,14 +66,19 @@ impl Editor {
         let old_locale = self.config.locale.clone();
         let old_plugins = self.config.plugins.clone();
 
-        // Get target layer and new config
-        let (target_layer, new_config) = {
+        // Get target layer, new config, and the actual changes made
+        let (target_layer, new_config, pending_changes, pending_deletions) = {
             if let Some(ref state) = self.settings_state {
                 if !state.has_changes() {
                     return;
                 }
                 match state.apply_changes(&self.config) {
-                    Ok(config) => (state.target_layer, config),
+                    Ok(config) => (
+                        state.target_layer,
+                        config,
+                        state.pending_changes.clone(),
+                        state.pending_deletions.clone(),
+                    ),
                     Err(e) => {
                         self.set_status_message(
                             t!("settings.failed_to_apply", error = e.to_string()).to_string(),
@@ -127,7 +132,7 @@ impl Editor {
         // Update keybindings
         self.keybindings = KeybindingResolver::new(&self.config);
 
-        // Save to disk using the appropriate layer
+        // Save ONLY the changes to disk (preserves external edits to the config file)
         let resolver = ConfigResolver::new(self.dir_context.clone(), self.working_dir.clone());
 
         let layer_name = match target_layer {
@@ -137,7 +142,7 @@ impl Editor {
             ConfigLayer::System => "System", // Should never happen
         };
 
-        match resolver.save_to_layer(&new_config, target_layer) {
+        match resolver.save_changes_to_layer(&pending_changes, &pending_deletions, target_layer) {
             Ok(()) => {
                 self.set_status_message(
                     t!("settings.saved_to_layer", layer = layer_name).to_string(),
