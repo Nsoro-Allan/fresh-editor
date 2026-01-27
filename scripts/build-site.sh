@@ -11,10 +11,9 @@ bun run docs:build
 # Copy custom homepage to root of dist
 cp homepage/index.html dist/
 
-# Copy homepage assets to dist/public/assets
-mkdir -p dist/public/assets
-if [ -d "homepage/public/assets" ] && [ "$(ls -A homepage/public/assets)" ]; then
-    cp -r homepage/public/assets/* dist/public/assets/
+# Copy all homepage public files (assets, icons, etc.) to dist/public
+if [ -d "homepage/public" ]; then
+    cp -r homepage/public dist/
 fi
 
 # Add .nojekyll to bypass Jekyll on GitHub Pages
