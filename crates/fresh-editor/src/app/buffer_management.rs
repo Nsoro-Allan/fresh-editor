@@ -270,6 +270,76 @@ impl Editor {
         Ok(buffer_id)
     }
 
+    /// Open a local file (always uses local filesystem, not remote)
+    ///
+    /// This is used for opening local files like log files when in remote mode.
+    /// Unlike `open_file`, this always uses the local filesystem even when
+    /// the editor is connected to a remote server.
+    pub fn open_local_file(&mut self, path: &Path) -> anyhow::Result<BufferId> {
+        // Resolve relative paths against working_dir
+        let resolved_path = if path.is_relative() {
+            self.working_dir.join(path)
+        } else {
+            path.to_path_buf()
+        };
+
+        // Canonicalize the path
+        let canonical_path = resolved_path
+            .canonicalize()
+            .unwrap_or_else(|_| resolved_path.clone());
+        let path = canonical_path.as_path();
+
+        // Check if already open
+        let already_open = self
+            .buffers
+            .iter()
+            .find(|(_, state)| state.buffer.file_path() == Some(path))
+            .map(|(id, _)| *id);
+
+        if let Some(id) = already_open {
+            self.set_active_buffer(id);
+            return Ok(id);
+        }
+
+        // Create new buffer
+        let buffer_id = BufferId(self.next_buffer_id);
+        self.next_buffer_id += 1;
+
+        // Create editor state using LOCAL filesystem
+        let state = EditorState::from_file_with_languages(
+            path,
+            self.terminal_width,
+            self.terminal_height,
+            self.config.editor.large_file_threshold_bytes as usize,
+            &self.grammar_registry,
+            &self.config.languages,
+            Arc::clone(&self.local_filesystem),
+        )?;
+
+        self.buffers.insert(buffer_id, state);
+        self.event_logs
+            .insert(buffer_id, crate::model::event::EventLog::new());
+
+        // Create metadata
+        let metadata =
+            super::types::BufferMetadata::with_file(path.to_path_buf(), &self.working_dir);
+        self.buffer_metadata.insert(buffer_id, metadata);
+
+        // Add to active split's tabs
+        let active_split = self.split_manager.active_split();
+        if let Some(view_state) = self.split_view_states.get_mut(&active_split) {
+            view_state.add_buffer(buffer_id);
+            view_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
+        }
+
+        self.set_active_buffer(buffer_id);
+
+        let display_name = path.display().to_string();
+        self.status_message = Some(t!("buffer.opened", name = display_name).to_string());
+
+        Ok(buffer_id)
+    }
+
     /// Restore global file state (cursor and scroll position) for a newly opened file
     ///
     /// This looks up the file's saved state from the global file states store

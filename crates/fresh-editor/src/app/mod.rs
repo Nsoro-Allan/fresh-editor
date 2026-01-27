@@ -285,6 +285,10 @@ pub struct Editor {
     /// Filesystem implementation for IO operations
     filesystem: Arc<dyn FileSystem + Send + Sync>,
 
+    /// Local filesystem for local-only operations (log files, etc.)
+    /// This is always StdFileSystem, even when filesystem is RemoteFileSystem
+    local_filesystem: Arc<dyn FileSystem + Send + Sync>,
+
     /// Process spawner for plugin command execution (local or remote)
     process_spawner: Arc<dyn crate::services::remote::ProcessSpawner>,
 
@@ -1068,6 +1072,7 @@ impl Editor {
             file_explorer: None,
             fs_manager,
             filesystem,
+            local_filesystem: Arc::new(crate::model::filesystem::StdFileSystem),
             process_spawner: Arc::new(crate::services::remote::LocalProcessSpawner),
             file_explorer_visible: false,
             file_explorer_sync_in_progress: false,
@@ -1528,7 +1533,8 @@ impl Editor {
     /// Open the status log file (user clicked on status message)
     pub fn open_status_log(&mut self) {
         if let Some(path) = self.status_log_path.clone() {
-            if let Err(e) = self.open_file(&path) {
+            // Use open_local_file since log files are always local
+            if let Err(e) = self.open_local_file(&path) {
                 tracing::error!("Failed to open status log: {}", e);
             }
         } else {
@@ -1573,7 +1579,8 @@ impl Editor {
     /// Open the warning log file (user-initiated action)
     pub fn open_warning_log(&mut self) {
         if let Some(path) = self.warning_domains.general.log_path.clone() {
-            if let Err(e) = self.open_file(&path) {
+            // Use open_local_file since log files are always local
+            if let Err(e) = self.open_local_file(&path) {
                 tracing::error!("Failed to open warning log: {}", e);
             }
         }
