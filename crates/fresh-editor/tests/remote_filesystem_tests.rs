@@ -8,8 +8,10 @@
 //! - AgentChannel for communication
 //! - RemoteFileSystem for file operations
 
+use fresh::model::buffer::TextBuffer;
 use fresh::model::filesystem::{FileSystem, WriteOp};
 use fresh::services::remote::{spawn_local_agent, RemoteFileSystem};
+use std::sync::Arc;
 
 /// Creates a RemoteFileSystem using production code
 fn create_test_filesystem() -> Option<(RemoteFileSystem, tempfile::TempDir, tokio::runtime::Runtime)>
@@ -507,4 +509,270 @@ fn test_write_patched_preserves_permissions() {
             "Permissions should be preserved after patch"
         );
     }
+}
+
+// =============================================================================
+// TextBuffer + RemoteFileSystem e2e tests
+// =============================================================================
+
+/// Creates a RemoteFileSystem wrapped in Arc for use with TextBuffer
+fn create_test_filesystem_arc() -> Option<(
+    Arc<RemoteFileSystem>,
+    tempfile::TempDir,
+    tokio::runtime::Runtime,
+)> {
+    let temp_dir = tempfile::tempdir().ok()?;
+    let rt = tokio::runtime::Runtime::new().ok()?;
+
+    let channel = rt.block_on(spawn_local_agent()).ok()?;
+    let fs = Arc::new(RemoteFileSystem::new(channel, "test@localhost".to_string()));
+
+    Some((fs, temp_dir, rt))
+}
+
+#[test]
+fn test_buffer_save_new_file_through_remote() {
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let file_path = temp_dir.path().join("new_file.txt");
+
+    // Create a buffer with content
+    let mut buffer = TextBuffer::from_bytes(b"Hello, World!\nLine 2\n".to_vec(), fs);
+
+    // Save to new file
+    buffer.save_to_file(&file_path).unwrap();
+
+    // Verify file content
+    let content = std::fs::read(&file_path).unwrap();
+    assert_eq!(content, b"Hello, World!\nLine 2\n");
+}
+
+#[test]
+fn test_buffer_save_edited_file_through_remote() {
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let file_path = temp_dir.path().join("edit_test.txt");
+
+    // Create initial file
+    std::fs::write(&file_path, b"AAABBBCCC").unwrap();
+
+    // Load through remote filesystem
+    let mut buffer = TextBuffer::load_from_file(&file_path, 1024 * 1024, fs).unwrap();
+
+    // Edit: delete "BBB" and insert "XXX"
+    buffer.delete_bytes(3, 3); // Delete "BBB"
+    buffer.insert_bytes(3, b"XXX".to_vec()); // Insert "XXX"
+
+    // Save back
+    buffer.save_to_file(&file_path).unwrap();
+
+    // Verify
+    let content = std::fs::read(&file_path).unwrap();
+    assert_eq!(content, b"AAAXXXCCC");
+}
+
+#[test]
+fn test_buffer_save_with_copy_ops_through_remote() {
+    // Test that unmodified regions use Copy ops (not transferred)
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let file_path = temp_dir.path().join("copy_ops_test.txt");
+
+    // Create a larger file where Copy ops will be used
+    let original: Vec<u8> = (0..10000).map(|i| b'A' + (i % 26) as u8).collect();
+    std::fs::write(&file_path, &original).unwrap();
+
+    // Load through remote filesystem
+    let mut buffer = TextBuffer::load_from_file(&file_path, 1024 * 1024, fs).unwrap();
+
+    // Make a small edit in the middle
+    let edit_pos = 5000;
+    buffer.delete_bytes(edit_pos, 10);
+    buffer.insert_bytes(edit_pos, b"EDITED".to_vec());
+
+    // Save back
+    buffer.save_to_file(&file_path).unwrap();
+
+    // Verify content
+    let content = std::fs::read(&file_path).unwrap();
+    assert_eq!(content.len(), original.len() - 10 + 6); // -10 deleted, +6 inserted
+
+    // Check the edit is in place
+    assert_eq!(&content[edit_pos..edit_pos + 6], b"EDITED");
+    // Check surrounding content preserved
+    assert_eq!(&content[0..100], &original[0..100]);
+    assert_eq!(
+        &content[content.len() - 100..],
+        &original[original.len() - 100..]
+    );
+}
+
+#[test]
+fn test_buffer_save_as_different_path_through_remote() {
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let original_path = temp_dir.path().join("original.txt");
+    let new_path = temp_dir.path().join("copy.txt");
+
+    // Create initial file
+    std::fs::write(&original_path, b"Original content").unwrap();
+
+    // Load through remote filesystem
+    let mut buffer = TextBuffer::load_from_file(&original_path, 1024 * 1024, fs).unwrap();
+
+    // Make an edit
+    buffer.insert_bytes(0, b"Modified: ".to_vec());
+
+    // Save to different path
+    buffer.save_to_file(&new_path).unwrap();
+
+    // Verify new file has modified content
+    let new_content = std::fs::read(&new_path).unwrap();
+    assert_eq!(new_content, b"Modified: Original content");
+
+    // Verify original file unchanged
+    let original_content = std::fs::read(&original_path).unwrap();
+    assert_eq!(original_content, b"Original content");
+}
+
+#[test]
+fn test_buffer_save_with_line_ending_conversion_through_remote() {
+    use fresh::model::buffer::LineEnding;
+
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let file_path = temp_dir.path().join("line_endings.txt");
+
+    // Create file with CRLF line endings
+    std::fs::write(&file_path, b"Line 1\r\nLine 2\r\nLine 3\r\n").unwrap();
+
+    // Load through remote filesystem
+    let mut buffer = TextBuffer::load_from_file(&file_path, 1024 * 1024, fs).unwrap();
+    assert_eq!(buffer.line_ending(), LineEnding::CRLF);
+
+    // Change to LF
+    buffer.set_line_ending(LineEnding::LF);
+
+    // Save back
+    buffer.save_to_file(&file_path).unwrap();
+
+    // Verify LF line endings (no CR)
+    let content = std::fs::read(&file_path).unwrap();
+    assert_eq!(content, b"Line 1\nLine 2\nLine 3\n");
+    assert!(!content.contains(&b'\r'));
+}
+
+#[test]
+fn test_buffer_save_empty_file_through_remote() {
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let file_path = temp_dir.path().join("empty.txt");
+
+    // Create an empty buffer
+    let mut buffer = TextBuffer::from_bytes(Vec::new(), fs);
+
+    // Save to file
+    buffer.save_to_file(&file_path).unwrap();
+
+    // Verify empty file
+    let content = std::fs::read(&file_path).unwrap();
+    assert!(content.is_empty());
+}
+
+#[test]
+fn test_buffer_multiple_edits_then_save_through_remote() {
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let file_path = temp_dir.path().join("multi_edit.txt");
+
+    // Create initial file: "The quick brown fox jumps over the lazy dog."
+    //                       0123456789...
+    std::fs::write(&file_path, b"The quick brown fox jumps over the lazy dog.").unwrap();
+
+    // Load through remote filesystem
+    let mut buffer = TextBuffer::load_from_file(&file_path, 1024 * 1024, fs).unwrap();
+
+    // Make multiple edits (work backwards to avoid offset shifts)
+    // Original: "The quick brown fox jumps over the lazy dog."
+    //            0         1         2         3         4
+    //            0123456789012345678901234567890123456789012345
+
+    // Change "lazy" (at pos 35) to "energetic"
+    buffer.delete_bytes(35, 4); // delete "lazy"
+    buffer.insert_bytes(35, b"energetic".to_vec());
+    // Now: "The quick brown fox jumps over the energetic dog."
+
+    // Change "brown" (at pos 10) to "red"
+    buffer.delete_bytes(10, 5); // delete "brown"
+    buffer.insert_bytes(10, b"red".to_vec());
+    // Now: "The quick red fox jumps over the energetic dog."
+
+    // Change "quick" (at pos 4) to "slow"
+    buffer.delete_bytes(4, 5); // delete "quick"
+    buffer.insert_bytes(4, b"slow".to_vec());
+    // Now: "The slow red fox jumps over the energetic dog."
+
+    // Save back
+    buffer.save_to_file(&file_path).unwrap();
+
+    // Verify
+    let content = std::fs::read(&file_path).unwrap();
+    assert_eq!(content, b"The slow red fox jumps over the energetic dog.");
+}
+
+#[test]
+fn test_buffer_save_large_file_with_small_edit_through_remote() {
+    let Some((fs, temp_dir, _rt)) = create_test_filesystem_arc() else {
+        eprintln!("Skipping test: could not create test filesystem");
+        return;
+    };
+
+    let file_path = temp_dir.path().join("large_edit.bin");
+
+    // Create a 1MB file
+    let size = 1_000_000;
+    let original: Vec<u8> = (0..size).map(|i| (i % 256) as u8).collect();
+    std::fs::write(&file_path, &original).unwrap();
+
+    // Load through remote filesystem
+    let mut buffer = TextBuffer::load_from_file(&file_path, 1024 * 1024, fs).unwrap();
+
+    // Make a tiny edit at the very end
+    let edit_pos = size - 10;
+    buffer.delete_bytes(edit_pos, 5);
+    buffer.insert_bytes(edit_pos, b"END".to_vec());
+
+    // Save back
+    buffer.save_to_file(&file_path).unwrap();
+
+    // Verify
+    let content = std::fs::read(&file_path).unwrap();
+    assert_eq!(content.len(), size - 5 + 3); // -5 deleted, +3 inserted
+
+    // Beginning should be unchanged
+    assert_eq!(&content[0..1000], &original[0..1000]);
+
+    // Edit should be in place
+    assert_eq!(&content[edit_pos..edit_pos + 3], b"END");
 }

@@ -121,6 +121,25 @@ impl WriteRecipe {
             })
             .collect()
     }
+
+    /// Check if this recipe has any Copy operations
+    fn has_copy_ops(&self) -> bool {
+        self.actions
+            .iter()
+            .any(|a| matches!(a, RecipeAction::Copy { .. }))
+    }
+
+    /// Flatten all Insert operations into a single buffer.
+    /// Only valid when has_copy_ops() returns false.
+    fn flatten_inserts(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+        for action in &self.actions {
+            if let RecipeAction::Insert { index } = action {
+                result.extend_from_slice(&self.insert_data[*index]);
+            }
+        }
+        result
+    }
 }
 
 /// Represents a line number (simplified for new implementation)
@@ -632,10 +651,21 @@ impl TextBuffer {
         if use_inplace {
             // In-place write: write directly to preserve ownership
             self.save_with_inplace_write(dest_path, &recipe)?;
+        } else if !recipe.has_copy_ops() && !is_local {
+            // Remote with no Copy ops: use write_file directly (more efficient)
+            let data = recipe.flatten_inserts();
+            self.fs.write_file(dest_path, &data)?;
         } else if is_local {
-            // Local atomic write: use write_patched with sudo fallback
-            let src_for_patch = recipe.src_path.as_deref().unwrap_or(dest_path);
-            if let Err(e) = self.fs.write_patched(src_for_patch, dest_path, &ops) {
+            // Local: use write_file or write_patched with sudo fallback
+            let write_result = if !recipe.has_copy_ops() {
+                let data = recipe.flatten_inserts();
+                self.fs.write_file(dest_path, &data)
+            } else {
+                let src_for_patch = recipe.src_path.as_deref().unwrap_or(dest_path);
+                self.fs.write_patched(src_for_patch, dest_path, &ops)
+            };
+
+            if let Err(e) = write_result {
                 if e.kind() == io::ErrorKind::PermissionDenied {
                     // Create temp file and return sudo error
                     let original_metadata = self.fs.metadata_if_exists(dest_path);
@@ -648,7 +678,7 @@ impl TextBuffer {
                 return Err(e.into());
             }
         } else {
-            // Remote: use write_patched (recipe sent to agent)
+            // Remote with Copy ops: use write_patched
             let src_for_patch = recipe.src_path.as_deref().unwrap_or(dest_path);
             self.fs.write_patched(src_for_patch, dest_path, &ops)?;
         }
