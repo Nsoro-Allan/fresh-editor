@@ -907,6 +907,22 @@
       "when": "normal"
     },
     {
+      "comment": "Jump to previous empty line with selection",
+      "key": "Up",
+      "modifiers": ["ctrl", "shift"],
+      "action": "select_to_paragraph_up",
+      "args": {},
+      "when": "normal"
+    },
+    {
+      "comment": "Jump to next empty line with selection",
+      "key": "Down",
+      "modifiers": ["ctrl", "shift"],
+      "action": "select_to_paragraph_down",
+      "args": {},
+      "when": "normal"
+    },
+    {
       "comment": "Normal context - Cancel/Escape",
       "key": "Escape",
       "modifiers": [],

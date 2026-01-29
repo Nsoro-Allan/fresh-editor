@@ -182,6 +182,8 @@
   "action.select_page_up": "Select page up",
   "action.select_right": "Select right",
   "action.select_theme": "Select theme",
+  "action.select_to_paragraph_down": "Select to next empty line",
+  "action.select_to_paragraph_up": "Select to previous empty line",
   "action.select_up": "Select up",
   "action.select_word": "Select word under cursor",
   "action.select_word_left": "Select word left",

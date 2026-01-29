@@ -54,6 +54,7 @@ pub mod save_as_language_detection;
 pub mod scroll_clearing;
 pub mod scrolling;
 pub mod search;
+pub mod select_to_paragraph;
 pub mod selection;
 pub mod session;
 pub mod settings;

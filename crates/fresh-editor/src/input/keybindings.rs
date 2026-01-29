@@ -240,6 +240,8 @@ pub enum Action {
     SelectRight,
     SelectUp,
     SelectDown,
+    SelectToParagraphUp,   // Jump to previous empty line with selection
+    SelectToParagraphDown, // Jump to next empty line with selection
     SelectWordLeft,
     SelectWordRight,
     SelectWordEnd, // Select to end of current word
@@ -598,6 +600,8 @@ impl Action {
             "select_right" => Self::SelectRight,
             "select_up" => Self::SelectUp,
             "select_down" => Self::SelectDown,
+            "select_to_paragraph_up" => Self::SelectToParagraphUp,
+            "select_to_paragraph_down" => Self::SelectToParagraphDown,
             "select_word_left" => Self::SelectWordLeft,
             "select_word_right" => Self::SelectWordRight,
             "select_word_end" => Self::SelectWordEnd,
@@ -904,6 +908,8 @@ impl Action {
                 | Action::SelectRight
                 | Action::SelectUp
                 | Action::SelectDown
+                | Action::SelectToParagraphUp
+                | Action::SelectToParagraphDown
                 | Action::SelectWordLeft
                 | Action::SelectWordRight
                 | Action::SelectWordEnd
@@ -1641,6 +1647,8 @@ impl KeybindingResolver {
             Action::SelectRight => t!("action.select_right"),
             Action::SelectUp => t!("action.select_up"),
             Action::SelectDown => t!("action.select_down"),
+            Action::SelectToParagraphUp => t!("action.select_to_paragraph_up"),
+            Action::SelectToParagraphDown => t!("action.select_to_paragraph_down"),
             Action::SelectWordLeft => t!("action.select_word_left"),
             Action::SelectWordRight => t!("action.select_word_right"),
             Action::SelectWordEnd => t!("action.select_word_end"),
