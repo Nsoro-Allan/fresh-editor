@@ -4,15 +4,23 @@
 
 ### Features
 
-* **Text Encoding Support**: Detect and convert files in UTF-8, UTF-16 LE/BE, Latin-1, Windows-1252, Windows-1250, GBK, Shift-JIS, EUC-KR, and GB18030. Encoding shown in status bar (clickable to change). "Reload with Encoding..." command in File menu. Confirmation prompt for large files with non-resynchronizable encodings.
+* **Windows Terminal Support**: Full terminal emulation on Windows using ConPTY (Windows 10 1809+). Handles PowerShell DSR cursor queries, prefers PowerShell over cmd.exe, and supports stdin piping (`type file | fresh`).
+
+* **Text Encoding Support**: Detect and convert files in UTF-8, UTF-16 LE/BE, Latin-1, Windows-1252, Windows-1250, GBK, Shift-JIS, EUC-KR, and GB18030. Encoding shown in status bar (clickable to change). "Reload with Encoding..." command in File menu. Confirmation prompt for large files with non-resynchronizable encodings (#488).
 
 * **Encoding Selection in File Browser**: Toggle "Detect Encoding" with Alt+E when opening files. When disabled, prompts for manual encoding selection.
 
 * **Bundle Package Type**: New package type containing multiple languages, plugins, and themes in a single package. Shown with "B" tag in package manager.
 
+* **Space-Separated Fuzzy Search**: Queries with spaces are now split into independent terms, all of which must match. For example, "features groups-view" now matches "/features/groups/groups-view.tsx" (#933).
+
 ### Bug Fixes
 
+* Fixed Escape key not closing the manual and keyboard shortcuts pages (#840).
+
 * Fixed scrollbar and mouse wheel scrolling not working with line wrap enabled.
+
+* Fixed scrollbar thumb drag jumping to mouse position instead of following drag movement.
 
 * Fixed AltGr character input not working on Windows (#762).
 
@@ -21,6 +29,14 @@
 * Fixed LSP servers registered via plugins being disabled by default.
 
 * Fixed language packs being installed to plugins directory instead of languages directory.
+
+* Fixed theme changes not persisting when selecting the default theme.
+
+* Fixed popup positioning not accounting for file explorer width (#898).
+
+* Fixed LSP did_open sending wrong language for multi-language LSP servers.
+
+* Fixed manual LSP start not working when LSP config was disabled; settings now sync immediately.
 
 ### Internal
 
