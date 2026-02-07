@@ -5,7 +5,7 @@
 //! key recording, conflict detection, and keymap management.
 
 use crate::config::{Config, KeyPress, Keybinding};
-use crate::input::keybindings::{format_keybinding, KeybindingResolver};
+use crate::input::keybindings::{format_keybinding, Action, KeybindingResolver};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashMap;
 
@@ -254,7 +254,7 @@ impl KeybindingEditor {
         let filtered_indices: Vec<usize> = (0..bindings.len()).collect();
 
         // Collect available action names
-        let available_actions = Self::collect_action_names(resolver);
+        let available_actions = Self::collect_action_names();
 
         // Collect keymap names
         let mut keymap_names: Vec<String> = config.keybinding_maps.keys().cloned().collect();
@@ -378,9 +378,9 @@ impl KeybindingEditor {
         }
     }
 
-    /// Collect all available action names
-    fn collect_action_names(#[allow(unused)] _resolver: &KeybindingResolver) -> Vec<String> {
-        KeybindingResolver::all_action_names()
+    /// Collect all available action names (delegates to the macro-generated source of truth)
+    fn collect_action_names() -> Vec<String> {
+        Action::all_action_names()
     }
 
     /// Update autocomplete suggestions based on current action text
