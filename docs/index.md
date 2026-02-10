@@ -1,6 +1,6 @@
 # Fresh Documentation
 
-Welcome to Fresh, a fast, extensible, and powerful terminal text editor. This guide will walk you through the core features of Fresh and help you get started with using and configuring the editor.
+Fresh is a terminal text editor. These docs cover core features, configuration, and plugins.
 
 ## User Guide
 - **[Getting Started](./getting-started/)**

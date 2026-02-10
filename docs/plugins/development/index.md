@@ -1,6 +1,6 @@
 # Fresh Plugin Development
 
-Welcome to the Fresh plugin development guide! This document will walk you through the process of creating your own plugins for Fresh.
+This guide covers creating plugins for Fresh.
 
 ## Package Types
 
@@ -16,9 +16,9 @@ Use `fresh --init` to scaffold any package type.
 
 ## Introduction
 
-Fresh plugins are written in **TypeScript** and run in a sandboxed Deno environment. This provides a safe and modern development experience with access to a powerful set of APIs for extending the editor.
+Fresh plugins are written in **TypeScript** and run in a sandboxed Deno environment. Plugins have access to a TypeScript API for extending the editor.
 
-For the complete API reference, see **[Plugin API Reference](../api/)**.
+API reference: **[Plugin API](../api/)**
 
 ## Getting Started: "Hello, World!"
 

@@ -1,6 +1,6 @@
 # File Explorer
 
-Fresh includes a built-in file explorer to help you navigate your project's files.
+Fresh includes a built-in file explorer.
 
 *   **Toggle Sidebar:** Use `Ctrl+B` to show/hide the file explorer sidebar.
 *   **Focus:** Use `Ctrl+E` to switch focus between the file explorer and editor.

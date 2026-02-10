@@ -10,7 +10,7 @@ See the [Installation section in the README](https://github.com/sinelaw/fresh#in
 
 ## Running Fresh
 
-To run Fresh, you can either open it without a file, or specify a file to open:
+Run Fresh from the command line:
 
 ```bash
 # Open an empty buffer
@@ -39,7 +39,7 @@ The `file:line:col` syntax is useful for jumping directly to compiler errors or 
 
 ## Core Concepts
 
-*   **The Command Palette:** The command palette is your central hub for accessing all of Fresh's features. Press `Ctrl+P` to open it, and then start typing to search for commands.
+*   **The Command Palette:** The command palette provides quick access to commands and features. Press `Ctrl+P` to open it, and then start typing to search for commands.
 *   **Buffers:** Each open file is represented as a buffer. You can have multiple buffers open at once and switch between them.
 *   **Splits:** You can split your editor view horizontally or vertically to view multiple buffers at once.
 *   **The Status Bar:** The status bar at the bottom of the screen displays information about the current buffer, including the file name, cursor position, and Git branch.

@@ -4,10 +4,8 @@
 
 ### `addOverlay`
 
-Add a colored highlight overlay to text without modifying content
-Overlays are visual decorations that persist until explicitly removed.
-Add an overlay (visual decoration) to a buffer
-Use namespaces for easy batch removal (e.g., "spell", "todo").
+Add a visual overlay to a buffer range. Overlays persist until explicitly removed.
+Use namespaces for batch removal (e.g., "spell", "todo").
 Multiple overlays can apply to the same range; colors blend.
 
 ```typescript
@@ -24,7 +22,7 @@ addOverlay(buffer_id: number, namespace: string, start: number, end: number, r: 
 | `end` | `number` | End byte offset |
 | `r` | `number` | Red (0-255) |
 | `g` | `number` | Green (0-255) |
-| `b` | `number` | uffer_id - Target buffer ID |
+| `b` | `number` | Blue (0-255) |
 | `bg_r` | `number` | - |
 | `bg_g` | `number` | - |
 | `bg_b` | `number` | - |
@@ -96,7 +94,7 @@ addVirtualText(buffer_id: number, virtual_text_id: string, position: number, tex
 | `text` | `string` | The virtual text to display |
 | `r` | `number` | Red color component (0-255) |
 | `g` | `number` | Green color component (0-255) |
-| `b` | `number` | uffer_id - The buffer ID |
+| `b` | `number` | Blue color component (0-255) |
 | `before` | `boolean` | Whether to insert before (true) or after (false) the position |
 | `use_bg` | `boolean` | Whether to use the color as background (true) or foreground (false) |
 

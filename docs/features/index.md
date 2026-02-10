@@ -1,7 +1,5 @@
 # Features
 
-Fresh provides a comprehensive set of features to help you be productive.
-
 - [Editing](./editing.md) - Multiple cursors, advanced selection, unlimited undo/redo
 - [Command Palette](./command-palette.md) - Quick access to commands, files, and navigation
 - [Navigation](./navigation.md) - Go to definition, position history

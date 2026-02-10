@@ -1,7 +1,7 @@
 # Configuration
 
 
-Fresh uses a layered configuration system that allows you to customize settings at different levels of scope.
+Fresh uses layered configuration.
 
 ## Configuration Layers
 
@@ -20,11 +20,11 @@ Settings are loaded from multiple layers, with higher layers overriding lower on
 
 ## How Layers Are Merged
 
-When Fresh loads configuration, it merges all layers together. The merge behavior depends on the type of setting:
+Fresh merges all layers. Merge behavior depends on the setting type:
 
 ### Simple Values (strings, numbers, booleans)
 
-Higher layers completely override lower layers. If a setting is not specified in a higher layer, it falls through to the next lower layer.
+Higher layers override lower layers. If a setting is not specified in a higher layer, it falls through to the next lower layer.
 
 ```
 System: theme = "default"    ← Base default
@@ -109,11 +109,11 @@ Lists are **replaced entirely** by higher layers - they are not merged or append
 
 ### Removing/Unsetting Values
 
-There is currently no explicit mechanism to "remove" or "unset" a value defined in a lower layer. You can only override values with different settings. For boolean settings, you can set them to `false` to disable a feature enabled in a lower layer.
+You cannot remove or unset a value from a lower layer — only override it. For boolean settings, you can set them to `false` to disable a feature enabled in a lower layer.
 
 ## Using the Settings UI
 
-The easiest way to configure Fresh is through the Settings UI:
+To configure Fresh through the Settings UI:
 
 1. **Open Settings**: Use **Edit → Settings...** or Command Palette (`Ctrl+P`) → "Open Settings"
 2. **Browse Categories**: Use arrow keys or click to navigate
@@ -220,7 +220,7 @@ In the Settings UI, each setting shows where its current value comes from:
 
 ## Process Resource Limits
 
-To prevent LSP servers from consuming too many resources, Fresh can limit their memory and CPU usage. This is configured in the `process_limits` section of your `config.json` file.
+To prevent LSP servers from consuming too many resources, Fresh can limit their memory and CPU usage.
 
 ```json
 {
@@ -237,4 +237,4 @@ To prevent LSP servers from consuming too many resources, Fresh can limit their 
 }
 ```
 
-For more information on how to configure resource limits, see the `docs/PROCESS_LIMITS.md` file.
+See `docs/PROCESS_LIMITS.md`.

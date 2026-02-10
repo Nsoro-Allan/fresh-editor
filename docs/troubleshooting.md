@@ -54,7 +54,7 @@ echo $COLORTERM
 
 ### Visual Regression Testing
 
-Fresh uses a visual regression testing system to ensure that UI changes are intentional. For more information, see `docs/VISUAL_REGRESSION_TESTING.md`.
+Fresh uses visual regression testing to catch unintentional UI changes. See `docs/VISUAL_REGRESSION_TESTING.md`.
 
 ## Keybindings
 

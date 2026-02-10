@@ -8,8 +8,6 @@ The `plugins/` directory contains several example plugins:
 - **`todo_highlighter.ts`** - Uses overlays and hooks to highlight keywords efficiently
 - **`git_grep.ts`** - Spawns external process and displays results in a virtual buffer
 
-Study these examples to learn common patterns for Fresh plugin development.
-
 ## Plugin Utilities Library
 
 The `plugins/lib/` directory provides reusable utilities that abstract common plugin patterns. Import them with:

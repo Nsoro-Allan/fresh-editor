@@ -7,7 +7,7 @@ Fresh's functionality can be extended with packages:
 *   **Language Packs:** Syntax highlighting, language configuration, and LSP support for new languages
 *   **Bundles:** Combine multiple languages and plugins into a single package
 
-Fresh comes with a few useful plugins out of the box:
+Bundled plugins:
 
 *   **TODO Highlighter:** Highlights `TODO`, `FIXME`, and other keywords in your comments.
 *   **Git Grep:** Interactively search through your Git repository.
@@ -17,7 +17,7 @@ Fresh comes with a few useful plugins out of the box:
 
 ## Package Manager
 
-Fresh includes a built-in package manager for installing plugins, themes, and language packs from git repositories.
+Fresh includes a built-in package manager.
 
 ### Installing Packages
 

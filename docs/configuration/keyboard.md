@@ -5,7 +5,7 @@ Many OSes, window managers and terminal applications capture keys and filter the
 
 ## Linux: XFCE window manager Ctrl + Alt + Up/Down keys - Disabling Workspace Switching Shortcuts
 
-Follow these steps to clear the **Ctrl + Alt + Up** and **Ctrl + Alt + Down** shortcuts so they can be used in other applications (like `fresh`).
+Follow these steps to clear the **Ctrl + Alt + Up** and **Ctrl + Alt + Down** shortcuts:
 
 ---
 
@@ -43,8 +43,6 @@ Follow these steps to clear the **Ctrl + Alt + Up** and **Ctrl + Alt + Down** sh
 - **Terminal.app**: [Import Fresh.terminal profile](https://github.com/sinelaw/fresh/blob/master/crates/fresh-editor/scripts/macOS/Fresh.terminal) to fix keybindings.
 - **iTerm2**: Follow the [configuration instructions](#iterm2-setup) below.
 
-Fresh works best on macOS when you understand the interaction between the operating system, your terminal emulator, and the editor. This section covers common issues and recommended configurations.
-
 ### Using the macOS Keymap
 
 Fresh includes a dedicated macOS keymap that addresses terminal-specific challenges. To use it, add to your `~/.config/fresh/config.json`:
@@ -80,7 +78,7 @@ For the best experience with Fresh on macOS, use a terminal that supports the **
 
 ### iTerm2 Setup
 
-To get the best experience with iTerm2, you need to enable CSI u support and configure the Option key.
+Enable CSI u support and configure the Option key:
 
 1.  Go to **Settings** > **Profiles** > **Keys**.
 2.  **General** tab:
@@ -92,7 +90,7 @@ To get the best experience with iTerm2, you need to enable CSI u support and con
 
 ### Apple Terminal.app Setup
 
-Apple's built-in Terminal requires manual configuration to work well with modern terminal editors.
+Apple's built-in Terminal requires manual configuration for proper key reporting.
 
 **Option as Meta:**
 1.  Go to **Settings** > **Profiles** > **Keyboard**.
@@ -173,7 +171,7 @@ Fresh can use the Kitty Keyboard Protocol to get more accurate key reporting fro
 | `keyboard_report_alternate_keys` | `true` | Send alternate keycodes in addition to base keycodes |
 | `keyboard_report_all_keys_as_escape_codes` | `false` | Report all keys (including plain text) as escape sequences |
 
-These flags only take effect if your terminal supports the Kitty Keyboard Protocol. Fresh automatically detects support and falls back gracefully if the protocol is unavailable. If you experience keyboard issues, try disabling all flags by setting them to `false`.
+These flags only take effect if your terminal supports the Kitty Keyboard Protocol. Fresh detects support automatically and falls back if unavailable. If you experience keyboard issues, try disabling all flags by setting them to `false`.
 
 ### Home and End Keys
 

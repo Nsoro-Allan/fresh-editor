@@ -73,10 +73,6 @@ List directory contents
 Returns unsorted entries with type info. Entry names are relative
 to the directory (use pathJoin to construct full paths).
 Throws on permission errors or if path is not a directory.
-const entries = editor.readDir("/home/user");
-for (const e of entries) {
-const fullPath = editor.pathJoin("/home/user", e.name);
-}
 
 ```typescript
 readDir(path: string): DirEntry[]
@@ -115,11 +111,7 @@ getEnv(name: string): string
 
 #### `getCwd`
 
-Get the editor's current working directory
-Returns the editor's working directory (set when the editor was started).
-Use as base for resolving relative paths and spawning processes.
-Note: This returns the editor's stored working_dir, not process CWD,
-which is important for test isolation.
+Returns the editor's working directory set at startup. Use as base for resolving relative paths.
 
 ```typescript
 getCwd(): string
@@ -132,8 +124,6 @@ getCwd(): string
 Join path segments using the OS path separator
 Handles empty segments and normalizes separators.
 If a segment is absolute, previous segments are discarded.
-pathJoin("/home", "user", "file.txt") // "/home/user/file.txt"
-pathJoin("relative", "/absolute") // "/absolute"
 
 ```typescript
 pathJoin(parts: string[]): string
@@ -157,8 +147,6 @@ pathJoin("relative", "/absolute") // "/absolute"
 Get the parent directory of a path
 Returns empty string for root paths or paths without parent.
 Does not resolve symlinks or check existence.
-pathDirname("/home/user/file.txt") // "/home/user"
-pathDirname("/") // ""
 
 ```typescript
 pathDirname(path: string): string
@@ -182,8 +170,6 @@ pathDirname("/") // ""
 Get the final component of a path
 Returns empty string for root paths.
 Does not strip file extension; use pathExtname for that.
-pathBasename("/home/user/file.txt") // "file.txt"
-pathBasename("/home/user/") // "user"
 
 ```typescript
 pathBasename(path: string): string
@@ -207,9 +193,6 @@ pathBasename("/home/user/") // "user"
 Get the file extension including the dot
 Returns empty string if no extension. Only returns the last extension
 for files like "archive.tar.gz" (returns ".gz").
-pathExtname("file.txt") // ".txt"
-pathExtname("archive.tar.gz") // ".gz"
-pathExtname("Makefile") // ""
 
 ```typescript
 pathExtname(path: string): string

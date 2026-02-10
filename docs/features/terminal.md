@@ -1,6 +1,6 @@
 # Integrated Terminal
 
-Fresh includes a built-in terminal emulator that lets you run shell commands without leaving the editor.
+Fresh includes a built-in terminal emulator.
 
 ## Opening a Terminal
 
@@ -11,7 +11,7 @@ Fresh includes a built-in terminal emulator that lets you run shell commands wit
 
 The terminal has two modes, indicated in the status bar:
 
-1.  **Terminal Mode** (status bar shows "Terminal"): Your keyboard input goes directly to the shell. Use this for typing commands and interacting with programs.
+1.  **Terminal Mode** (status bar shows "Terminal"): Your keyboard input goes directly to the shell.
 
 2.  **Scrollback Mode** (status bar shows "Terminal (read only)"): The terminal output becomes a read-only buffer that you can scroll through, search, and copy text from.
 
@@ -39,7 +39,7 @@ In scrollback mode, you can use standard editor navigation:
 
 ## Tips and Quirks
 
-*   **Workspace Persistence:** Terminal scrollback is preserved when you close and reopen Fresh. Your scrollback history is maintained, but all running processes are terminated and lost.
+*   **Workspace Persistence:** Terminal scrollback is preserved across editor restarts, but running processes are terminated.
 *   **Session Persistence (Experimental):** Use `fresh -a` to start in session mode, then detach with `Ctrl+Shift+D` to keep terminal processes running in the background. Reattach with `fresh -a`. See [Session Persistence](./session-persistence.md) for details.
 *   **Automatic Scroll:** When new output arrives while you're in scrollback mode, the terminal automatically returns to terminal mode to show the latest output. Disable this with the `terminal.jump_to_end_on_output` config option.
 *   **Resizing:** The terminal automatically resizes when you resize the editor or split panes.

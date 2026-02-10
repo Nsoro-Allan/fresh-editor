@@ -32,8 +32,6 @@ If a file is detected incorrectly, reload it with a specific encoding:
 2. **File Menu**: File → Reload with Encoding...
 3. **Status Bar**: Click the encoding indicator
 
-Select the correct encoding from the list to reload the file.
-
 ## File Browser Encoding Toggle
 
 When opening files via the file browser (`Ctrl+O`):
@@ -43,4 +41,4 @@ When opening files via the file browser (`Ctrl+O`):
 
 ## Large File Confirmation
 
-For large files (>10MB) with non-UTF-8 encodings, Fresh shows a confirmation prompt before loading since encoding conversion cannot be incrementally re-synchronized.
+For large files (>10MB) with non-UTF-8 encodings, Fresh shows a confirmation prompt before loading since full re-conversion is required.

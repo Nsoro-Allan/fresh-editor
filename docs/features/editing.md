@@ -1,7 +1,5 @@
 # Editing
 
-Fresh provides a powerful set of editing features with intuitive keybindings.
-
 ::: tip Platform Note
 Some keybindings may not work or may differ on your system due to differences in keyboard layouts, terminal emulators, and operating systems. Terminals capture and report key events differently, and some key combinations may be intercepted by your OS or terminal before reaching Fresh. If a keybinding doesn't work, check the command palette (`Ctrl+P`) for alternative bindings, use the [keyboard configuration](../configuration/keyboard.md) to customize bindings, or browse all available shortcuts in the [Keybinding Editor](./keybinding-editor.md).
 :::

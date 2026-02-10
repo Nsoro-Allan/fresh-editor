@@ -1,7 +1,5 @@
 # Fresh Editor Plugin API
 
-This document describes the TypeScript API available to Fresh editor plugins.
-
 ## Core Concepts
 
 ### Buffers

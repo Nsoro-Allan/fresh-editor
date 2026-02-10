@@ -240,7 +240,7 @@ contexts:
 
 ### Documentation Resources
 
-For comprehensive grammar writing guidance, see the official documentation:
+Official documentation:
 
 - **[Sublime Text Syntax Reference](https://www.sublimetext.com/docs/syntax.html)** - Complete format specification
 - **[Scope Naming Guide](https://www.sublimetext.com/docs/scope_naming.html)** - Standard scope names for syntax elements

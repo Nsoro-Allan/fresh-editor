@@ -43,9 +43,7 @@ getUserConfig(): unknown
 
 ### `getConfigDir`
 
-Get the user configuration directory path
-Returns the absolute path to the directory where user config and themes are stored.
-e.g. ~/.config/fresh/ on Linux or ~/Library/Application Support/fresh/ on macOS.
+Returns the absolute path to the user config directory (e.g., `~/.config/fresh/` on Linux).
 
 ```typescript
 getConfigDir(): string
@@ -73,10 +71,7 @@ getActiveBufferId(): number
 
 ### `getCursorPosition`
 
-Get the byte offset of the primary cursor in the active buffer
-Returns 0 if no cursor exists. For multi-cursor scenarios, use getAllCursors
-to get all cursor positions with selection info.
-Note: This is a byte offset, not a character index (UTF-8 matters).
+Returns 0 if no cursor. For multi-cursor, use `getAllCursors`. Note: byte offset, not character index.
 
 ```typescript
 getCursorPosition(): number
@@ -528,7 +523,7 @@ setLineIndicator(buffer_id: number, line: number, namespace: string, symbol: str
 | `symbol` | `string` | Symbol to display (e.g., "│", "●", "★") |
 | `r` | `number` | Red color component (0-255) |
 | `g` | `number` | Green color component (0-255) |
-| `b` | `number` | uffer_id - The buffer ID |
+| `b` | `number` | Blue color component (0-255) |
 | `priority` | `number` | Priority for display when multiple indicators exist (higher wins) |
 
 #### `clearLineIndicators`
@@ -729,9 +724,6 @@ Unlike spawnProcess which waits for completion, this starts a process
 in the background and returns immediately with a process ID.
 Use killProcess(id) to terminate the process later.
 Use isProcessRunning(id) to check if it's still running.
-const proc = await editor.spawnBackgroundProcess("asciinema", ["rec", "output.cast"]);
-// Later...
-await editor.killProcess(proc.process_id);
 
 ```typescript
 spawnBackgroundProcess(command: string, args: string[], cwd?: string | null): Promise<BackgroundProcessResult>

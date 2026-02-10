@@ -1,6 +1,6 @@
 # Privacy & Telemetry
 
-Fresh checks for new versions to notify you when upgrades are available. Alongside this, it sends basic anonymous telemetry to help understand usage patterns. Both are part of the same daily check.
+Fresh checks for new versions to notify you when upgrades are available. Alongside this, it sends basic anonymous telemetry to help understand usage patterns.
 
 The data collected includes:
 

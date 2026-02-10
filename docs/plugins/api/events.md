@@ -8,10 +8,6 @@ Subscribe to an editor event
 Handler must be a global function name (not a closure).
 Multiple handlers can be registered for the same event.
 Events: "buffer_save", "cursor_moved", "buffer_modified", etc.
-globalThis.onSave = (data) => {
-editor.setStatus(`Saved: ${data.path}`);
-};
-editor.on("buffer_save", "onSave");
 
 ```typescript
 on(event_name: string, handler_name: string): boolean

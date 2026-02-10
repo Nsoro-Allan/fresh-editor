@@ -1,7 +1,7 @@
 # Themes
 
 
-Fresh supports customizable color themes for the editor, UI elements, and syntax highlighting.
+Fresh supports customizable color themes.
 
 ## Selecting a Theme
 

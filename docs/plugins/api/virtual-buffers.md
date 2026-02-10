@@ -8,22 +8,6 @@ Create a virtual buffer in a new horizontal split below current pane
 Use for results panels, diagnostics, logs, etc. The panel_id enables
 idempotent updates: if a panel with that ID exists, its content is replaced
 instead of creating a new split. Define the mode with defineMode first.
-// First define the mode with keybindings
-editor.defineMode("search-results", "special", [
-["Return", "search_goto"],
-["q", "close_buffer"]
-], true);
-// Then create the buffer
-const id = await editor.createVirtualBufferInSplit({
-name: "*Search*",
-mode: "search-results",
-read_only: true,
-entries: [
-{ text: "src/main.rs:42: match\n", properties: { file: "src/main.rs", line: 42 } }
-],
-ratio: 0.3,
-panel_id: "search"
-});
 
 ```typescript
 createVirtualBufferInSplit(options: CreateVirtualBufferOptions): Promise<CreateVirtualBufferResult>
@@ -90,10 +74,6 @@ createVirtualBuffer(options: CreateVirtualBufferInCurrentSplitOptions): Promise<
 ### `defineMode`
 
 Define a buffer mode with keybindings
-editor.defineMode("diagnostics-list", "special", [
-["Return", "diagnostics_goto"],
-["q", "close_buffer"]
-], true);
 
 ```typescript
 defineMode(name: string, parent: string, bindings: [string, string][], read_only: boolean): boolean
@@ -191,10 +171,6 @@ closeSplit(split_id: number): boolean
 ### `getTextPropertiesAtCursor`
 
 Get text properties at the cursor position in a buffer
-const props = editor.getTextPropertiesAtCursor(bufferId);
-if (props.length > 0 && props[0].location) {
-editor.openFile(props[0].location.file, props[0].location.line, 0);
-}
 
 ```typescript
 getTextPropertiesAtCursor(buffer_id: number): Record<string, unknown>[]

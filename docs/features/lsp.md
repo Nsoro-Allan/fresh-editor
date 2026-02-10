@@ -8,7 +8,7 @@ Fresh has native support for the Language Server Protocol (LSP), providing featu
 
 ## Built-in LSP Support
 
-Fresh includes built-in LSP configurations for many popular languages. Simply install the language server and Fresh will use it automatically:
+Fresh includes built-in LSP configurations for many languages. Install the server and Fresh will use it automatically:
 
 | Language | LSP Server | Install Command |
 |----------|-----------|-----------------|
@@ -24,7 +24,7 @@ Fresh includes built-in LSP configurations for many popular languages. Simply in
 
 ## Python LSP Configuration
 
-Fresh includes built-in support for Python with `pylsp` (Python Language Server). However, you can also use alternative Python language servers:
+The default Python server is `pylsp`. Alternatives:
 
 **Using pyright (recommended for type checking):**
 
@@ -111,7 +111,7 @@ For example, to add C# support:
 }
 ```
 
-The language name (e.g., `"csharp"`) must match in both sections. Fresh includes built-in language definitions for Rust, JavaScript, TypeScript, and Python, but you can add any language by configuring it in your config file.
+The language name (e.g., `"csharp"`) must match in both sections. Fresh includes built-in language definitions for Rust, JavaScript, TypeScript, and Python.
 
 ## Configuring Language Detection via Settings UI
 
