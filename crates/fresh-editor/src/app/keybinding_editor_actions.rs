@@ -58,10 +58,18 @@ impl Editor {
             return;
         }
 
-        // Collect all custom bindings from the editor
-        let new_bindings = editor.get_custom_bindings();
+        // Remove deleted custom bindings from config
+        for remove in editor.get_pending_removes() {
+            self.config.keybindings.retain(|kb| {
+                !(kb.action == remove.action
+                    && kb.key == remove.key
+                    && kb.modifiers == remove.modifiers
+                    && kb.when == remove.when)
+            });
+        }
 
-        // Add new bindings to existing custom keybindings
+        // Add new custom bindings
+        let new_bindings = editor.get_custom_bindings();
         for binding in new_bindings {
             self.config.keybindings.push(binding);
         }

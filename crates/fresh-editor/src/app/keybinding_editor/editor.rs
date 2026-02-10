@@ -53,8 +53,8 @@ pub struct KeybindingEditor {
 
     /// Custom bindings that have been added (pending save)
     pub pending_adds: Vec<Keybinding>,
-    /// Indices of custom bindings to remove (pending save)
-    pub pending_removes: Vec<usize>,
+    /// Custom bindings to remove from config (pending save)
+    pub pending_removes: Vec<Keybinding>,
     /// Whether there are unsaved changes
     pub has_changes: bool,
 
@@ -482,8 +482,46 @@ impl KeybindingEditor {
     pub fn delete_selected(&mut self) -> bool {
         if let Some(&idx) = self.filtered_indices.get(self.selected) {
             if self.bindings[idx].source == BindingSource::Custom {
-                let action_name = self.bindings[idx].action.clone();
-                self.pending_removes.push(idx);
+                let binding = &self.bindings[idx];
+                let action_name = binding.action.clone();
+
+                // Build config-level Keybinding for matching during save
+                let config_kb = Keybinding {
+                    key: if binding.is_chord {
+                        String::new()
+                    } else {
+                        key_code_to_config_name(binding.key_code)
+                    },
+                    modifiers: if binding.is_chord {
+                        Vec::new()
+                    } else {
+                        modifiers_to_config_names(binding.modifiers)
+                    },
+                    keys: Vec::new(),
+                    action: binding.action.clone(),
+                    args: HashMap::new(),
+                    when: if binding.context.is_empty() {
+                        None
+                    } else {
+                        Some(binding.context.clone())
+                    },
+                };
+
+                // If this binding was added in the current session, just
+                // remove it from pending_adds. Otherwise track for removal
+                // from the persisted config.
+                let found_in_adds = self.pending_adds.iter().position(|kb| {
+                    kb.action == config_kb.action
+                        && kb.key == config_kb.key
+                        && kb.modifiers == config_kb.modifiers
+                        && kb.when == config_kb.when
+                });
+                if let Some(pos) = found_in_adds {
+                    self.pending_adds.remove(pos);
+                } else {
+                    self.pending_removes.push(config_kb);
+                }
+
                 self.bindings.remove(idx);
                 self.has_changes = true;
 
@@ -625,6 +663,11 @@ impl KeybindingEditor {
     /// Get the custom bindings to save to config
     pub fn get_custom_bindings(&self) -> Vec<Keybinding> {
         self.pending_adds.clone()
+    }
+
+    /// Get the custom bindings to remove from config
+    pub fn get_pending_removes(&self) -> &[Keybinding] {
+        &self.pending_removes
     }
 
     /// Get the context filter display string

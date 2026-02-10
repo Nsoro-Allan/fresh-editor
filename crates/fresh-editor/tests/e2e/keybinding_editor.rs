@@ -1428,14 +1428,9 @@ fn test_delete_binding_full_flow() {
     harness.render().unwrap();
 
     // === Phase 5: After delete - verify key has no effect ===
-    // Undo the duplicate from Phase 2 to restore "aaa"
-    harness
-        .send_key(KeyCode::Char('z'), KeyModifiers::CONTROL)
-        .unwrap();
-    harness.render().unwrap();
-
-    let buffer_content = harness.get_buffer_content().unwrap();
-    assert_eq!(buffer_content, "aaa", "After undo, buffer should be 'aaa'");
+    // Buffer still has "aaa\naaa" from Phase 2. Record it, then press the
+    // key and verify the buffer is unchanged (binding no longer active).
+    let buffer_before = harness.get_buffer_content().unwrap();
 
     // Press Ctrl+Shift+D - should have NO effect since the binding was deleted
     harness
@@ -1446,9 +1441,9 @@ fn test_delete_binding_full_flow() {
         .unwrap();
     harness.render().unwrap();
 
-    let buffer_content = harness.get_buffer_content().unwrap();
+    let buffer_after = harness.get_buffer_content().unwrap();
     assert_eq!(
-        buffer_content, "aaa",
+        buffer_after, buffer_before,
         "After delete: Ctrl+Shift+D should have no effect (binding was removed)"
     );
 }
