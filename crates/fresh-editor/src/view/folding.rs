@@ -34,6 +34,17 @@ pub struct ResolvedFoldRange {
     pub placeholder: Option<String>,
 }
 
+/// Collapsed fold range represented by line numbers for persistence/cloning.
+#[derive(Debug, Clone)]
+pub struct CollapsedFoldLineRange {
+    /// Header line number (visible line that owns the fold)
+    pub header_line: usize,
+    /// Last hidden line number (inclusive)
+    pub end_line: usize,
+    /// Optional placeholder text
+    pub placeholder: Option<String>,
+}
+
 /// Manages collapsed fold ranges for a buffer.
 #[derive(Debug, Clone)]
 pub struct FoldManager {
@@ -197,6 +208,22 @@ impl FoldManager {
             map.insert(range.header_line, range.placeholder);
         }
         map
+    }
+
+    /// Return collapsed fold ranges as line-based data (for persistence/cloning).
+    pub fn collapsed_line_ranges(
+        &self,
+        buffer: &Buffer,
+        marker_list: &MarkerList,
+    ) -> Vec<CollapsedFoldLineRange> {
+        self.resolved_ranges(buffer, marker_list)
+            .into_iter()
+            .map(|range| CollapsedFoldLineRange {
+                header_line: range.header_line,
+                end_line: range.end_line,
+                placeholder: range.placeholder,
+            })
+            .collect()
     }
 
     /// Count total hidden lines for folds with headers in the given range.

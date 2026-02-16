@@ -550,6 +550,10 @@ static COMMAND_DEFS: &[CommandDef] = &[
         name_key: "cmd.toggle_scroll_sync",
         desc_key: "cmd.toggle_scroll_sync_desc",
         action: || Action::ToggleScrollSync,
+        contexts: &[Normal],
+        custom_contexts: &[],
+    },
+    CommandDef {
         name_key: "cmd.toggle_fold",
         desc_key: "cmd.toggle_fold_desc",
         action: || Action::ToggleFold,

@@ -703,6 +703,7 @@ impl Editor {
             view_mode: Default::default(),
             compose_width: None,
             plugin_state: std::collections::HashMap::new(),
+            folds: Vec::new(),
         };
 
         // Save to disk

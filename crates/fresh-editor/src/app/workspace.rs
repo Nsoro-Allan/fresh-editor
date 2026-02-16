@@ -34,9 +34,10 @@ use crate::state::ViewMode;
 use crate::view::split::{SplitNode, SplitViewState};
 use crate::workspace::{
     FileExplorerState, PersistedFileWorkspace, SearchOptions, SerializedBookmark, SerializedCursor,
-    SerializedFileState, SerializedScroll, SerializedSplitDirection, SerializedSplitNode,
-    SerializedSplitViewState, SerializedTabRef, SerializedTerminalWorkspace, SerializedViewMode,
-    Workspace, WorkspaceConfigOverrides, WorkspaceError, WorkspaceHistories, WORKSPACE_VERSION,
+    SerializedFileState, SerializedFoldRange, SerializedScroll, SerializedSplitDirection,
+    SerializedSplitNode, SerializedSplitViewState, SerializedTabRef, SerializedTerminalWorkspace,
+    SerializedViewMode, Workspace, WorkspaceConfigOverrides, WorkspaceError, WorkspaceHistories,
+    WORKSPACE_VERSION,
 };
 
 use super::types::Bookmark;
@@ -170,6 +171,7 @@ impl Editor {
             let active_buffer = active_buffers.get(leaf_id).copied();
             let serialized = serialize_split_view_state(
                 view_state,
+                &self.buffers,
                 &self.buffer_metadata,
                 &self.working_dir,
                 active_buffer,
@@ -368,6 +370,7 @@ impl Editor {
             view_mode: Default::default(),
             compose_width: None,
             plugin_state: std::collections::HashMap::new(),
+            folds: Vec::new(),
         };
 
         // Save to disk immediately
@@ -1042,6 +1045,29 @@ impl Editor {
             };
             buf_state.compose_width = file_state.compose_width;
             buf_state.plugin_state = file_state.plugin_state.clone();
+            if let Some(state) = self.buffers.get_mut(&buffer_id) {
+                buf_state.folds.clear(&mut state.marker_list);
+                for fold in &file_state.folds {
+                    let start_line = fold.header_line.saturating_add(1);
+                    let end_line = fold.end_line;
+                    if start_line > end_line {
+                        continue;
+                    }
+                    let Some(start_byte) = state.buffer.line_start_offset(start_line) else {
+                        continue;
+                    };
+                    let end_byte = state
+                        .buffer
+                        .line_start_offset(end_line.saturating_add(1))
+                        .unwrap_or_else(|| state.buffer.len());
+                    buf_state.folds.add(
+                        &mut state.marker_list,
+                        start_byte,
+                        end_byte,
+                        fold.placeholder.clone(),
+                    );
+                }
+            }
 
             tracing::trace!(
                 "Restored keyed state for {:?}: cursor={}, top_byte={}, view_mode={:?}",
@@ -1186,6 +1212,7 @@ fn serialize_split_node(
 
 fn serialize_split_view_state(
     view_state: &crate::view::split::SplitViewState,
+    buffers: &HashMap<BufferId, EditorState>,
     buffer_metadata: &HashMap<BufferId, super::types::BufferMetadata>,
     working_dir: &Path,
     active_buffer: Option<BufferId>,
@@ -1239,6 +1266,21 @@ fn serialize_split_view_state(
             if let Some(abs_path) = meta.file_path() {
                 if let Ok(rel_path) = abs_path.strip_prefix(working_dir) {
                     let primary_cursor = buf_state.cursors.primary();
+                    let folds = buffers
+                        .get(buffer_id)
+                        .map(|state| {
+                            buf_state
+                                .folds
+                                .collapsed_line_ranges(&state.buffer, &state.marker_list)
+                                .into_iter()
+                                .map(|range| SerializedFoldRange {
+                                    header_line: range.header_line,
+                                    end_line: range.end_line,
+                                    placeholder: range.placeholder,
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default();
 
                     file_states.insert(
                         rel_path.to_path_buf(),
@@ -1269,6 +1311,7 @@ fn serialize_split_view_state(
                             },
                             compose_width: buf_state.compose_width,
                             plugin_state: buf_state.plugin_state.clone(),
+                            folds,
                         },
                     );
                 }

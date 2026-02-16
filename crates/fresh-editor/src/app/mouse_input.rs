@@ -116,6 +116,15 @@ impl Editor {
 
         match mouse_event.kind {
             MouseEventKind::Down(MouseButton::Left) => {
+                if is_double_click || is_triple_click {
+                    if let Some((buffer_id, line)) =
+                        self.fold_toggle_line_at_screen_position(col, row)
+                    {
+                        self.toggle_fold_at_line(buffer_id, line);
+                        needs_render = true;
+                        return Ok(needs_render);
+                    }
+                }
                 if is_triple_click {
                     // Triple click detected - select entire line
                     self.handle_mouse_triple_click(col, row)?;
@@ -2081,20 +2090,33 @@ impl Editor {
                 return Ok(());
             };
 
-            // Move cursor to target position while keeping anchor to create selection
-            let primary_cursor_id = self
+            let (primary_cursor_id, old_position, old_anchor, old_sticky_column) = self
                 .split_view_states
                 .get(&leaf_id)
-                .map(|vs| vs.cursors.primary_id())
-                .unwrap_or(CursorId(0));
+                .map(|vs| {
+                    let cursor = vs.cursors.primary();
+                    (
+                        vs.cursors.primary_id(),
+                        cursor.position,
+                        cursor.anchor,
+                        cursor.sticky_column,
+                    )
+                })
+                .unwrap_or((CursorId(0), 0, None, 0));
+
+            let new_sticky_column = state
+                .buffer
+                .offset_to_position(target_position)
+                .map(|pos| pos.column)
+                .unwrap_or(old_sticky_column);
             let event = Event::MoveCursor {
                 cursor_id: primary_cursor_id,
-                old_position: 0,
+                old_position,
                 new_position: target_position,
-                old_anchor: None,
+                old_anchor,
                 new_anchor: Some(anchor_position), // Keep anchor to maintain selection
-                old_sticky_column: 0,
-                new_sticky_column: 0,
+                old_sticky_column,
+                new_sticky_column,
             };
 
             if let Some(event_log) = self.event_logs.get_mut(&buffer_id) {

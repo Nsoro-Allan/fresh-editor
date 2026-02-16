@@ -181,6 +181,22 @@ pub struct SerializedFileState {
     /// Plugin-managed state (arbitrary key-value pairs, persisted across sessions)
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub plugin_state: HashMap<String, serde_json::Value>,
+
+    /// Collapsed folding ranges for this buffer/view
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub folds: Vec<SerializedFoldRange>,
+}
+
+/// Line-based folded range for persistence
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedFoldRange {
+    /// Header line number (visible line that owns the fold)
+    pub header_line: usize,
+    /// Last hidden line number (inclusive)
+    pub end_line: usize,
+    /// Optional placeholder text for the fold
+    #[serde(default)]
+    pub placeholder: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -905,6 +921,7 @@ mod tests {
             view_mode: SerializedViewMode::Source,
             compose_width: None,
             plugin_state: HashMap::new(),
+            folds: Vec::new(),
         };
 
         let json = serde_json::to_string(&file_state).unwrap();

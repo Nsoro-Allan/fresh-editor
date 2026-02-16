@@ -23,6 +23,7 @@ pub mod file_explorer;
 pub mod file_permissions;
 #[cfg(feature = "gui")]
 pub mod gui;
+pub mod folding;
 pub mod horizontal_scrollbar;
 pub mod indent_dedent;
 pub mod keybinding_editor;

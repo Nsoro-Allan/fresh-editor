@@ -211,13 +211,21 @@ impl Editor {
 
     /// Toggle folding for the given line in the specified buffer.
     pub fn toggle_fold_at_line(&mut self, buffer_id: BufferId, line: usize) {
-        let Some(state) = self.buffers.get_mut(&buffer_id) else {
+        let split_id = self.split_manager.active_split();
+        let (buffers, split_view_states) = (&mut self.buffers, &mut self.split_view_states);
+
+        let Some(state) = buffers.get_mut(&buffer_id) else {
             return;
         };
 
         if state.folding_ranges.is_empty() {
             return;
         }
+
+        let Some(view_state) = split_view_states.get_mut(&split_id) else {
+            return;
+        };
+        let buf_state = view_state.ensure_buffer_state(buffer_id);
 
         let mut selected_range: Option<&lsp_types::FoldingRange> = None;
         let mut selected_span = usize::MAX;
@@ -242,7 +250,7 @@ impl Editor {
             return;
         };
 
-        if state
+        if buf_state
             .folds
             .remove_by_header_line(&state.buffer, &mut state.marker_list, line)
         {
@@ -264,13 +272,31 @@ impl Editor {
             .line_start_offset(end_line.saturating_add(1))
             .unwrap_or_else(|| state.buffer.len());
 
+        // Move any cursors inside the soon-to-be-hidden range to the header line.
+        if let Some(header_byte) = state.buffer.line_start_offset(line) {
+            buf_state.cursors.map(|cursor| {
+                let in_hidden_range = cursor.position >= start_byte && cursor.position < end_byte;
+                let anchor_in_hidden = cursor
+                    .anchor
+                    .is_some_and(|anchor| anchor >= start_byte && anchor < end_byte);
+                if in_hidden_range || anchor_in_hidden {
+                    cursor.position = header_byte;
+                    cursor.anchor = None;
+                    cursor.sticky_column = 0;
+                    cursor.selection_mode = crate::model::cursor::SelectionMode::Normal;
+                    cursor.block_anchor = None;
+                    cursor.deselect_on_move = true;
+                }
+            });
+        }
+
         let placeholder = range
             .collapsed_text
             .as_ref()
             .filter(|text| !text.trim().is_empty())
             .cloned();
 
-        state
+        buf_state
             .folds
             .add(&mut state.marker_list, start_byte, end_byte, placeholder);
     }
@@ -343,10 +369,15 @@ impl Editor {
             .retain(|_, req| req.buffer_id != buffer_id);
 
         // Clear LSP-related overlays (inlay hints) for this buffer
-        if let Some(state) = self.buffers.get_mut(&buffer_id) {
+        let (buffers, split_view_states) = (&mut self.buffers, &mut self.split_view_states);
+        if let Some(state) = buffers.get_mut(&buffer_id) {
             state.virtual_texts.clear(&mut state.marker_list);
             state.folding_ranges.clear();
-            state.folds.clear(&mut state.marker_list);
+            for view_state in split_view_states.values_mut() {
+                if let Some(buf_state) = view_state.keyed_states.get_mut(&buffer_id) {
+                    buf_state.folds.clear(&mut state.marker_list);
+                }
+            }
         }
     }
 

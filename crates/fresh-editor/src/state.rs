@@ -17,7 +17,6 @@ use crate::primitives::reference_highlighter::ReferenceHighlighter;
 use crate::primitives::text_property::TextPropertyManager;
 use crate::view::bracket_highlight_overlay::BracketHighlightOverlay;
 use crate::view::conceal::ConcealManager;
-use crate::view::folding::FoldManager;
 use crate::view::margin::{MarginAnnotation, MarginContent, MarginManager, MarginPosition};
 use crate::view::overlay::{Overlay, OverlayFace, OverlayManager, UnderlineStyle};
 use crate::view::popup::{
@@ -108,9 +107,6 @@ pub struct EditorState {
     /// Soft break points for marker-based line wrapping during rendering
     pub soft_breaks: SoftBreakManager,
 
-    /// Collapsed folding ranges (marker-based)
-    pub folds: FoldManager,
-
     /// Popups for floating windows (completion, documentation, etc.)
     pub popups: PopupManager,
 
@@ -186,7 +182,6 @@ impl EditorState {
             virtual_texts: VirtualTextManager::new(),
             conceals: ConcealManager::new(),
             soft_breaks: SoftBreakManager::new(),
-            folds: FoldManager::new(),
             popups: PopupManager::new(),
             margins: MarginManager::new(),
             primary_cursor_line_number: LineNumber::Absolute(0), // Start at line 0
@@ -275,7 +270,6 @@ impl EditorState {
             virtual_texts: VirtualTextManager::new(),
             conceals: ConcealManager::new(),
             soft_breaks: SoftBreakManager::new(),
-            folds: FoldManager::new(),
             popups: PopupManager::new(),
             margins: MarginManager::new(),
             primary_cursor_line_number: LineNumber::Absolute(0),
@@ -339,7 +333,6 @@ impl EditorState {
             virtual_texts: VirtualTextManager::new(),
             conceals: ConcealManager::new(),
             soft_breaks: SoftBreakManager::new(),
-            folds: FoldManager::new(),
             popups: PopupManager::new(),
             margins: MarginManager::new(),
             primary_cursor_line_number: LineNumber::Absolute(0),
@@ -388,7 +381,6 @@ impl EditorState {
             virtual_texts: VirtualTextManager::new(),
             conceals: ConcealManager::new(),
             soft_breaks: SoftBreakManager::new(),
-            folds: FoldManager::new(),
             popups: PopupManager::new(),
             margins: MarginManager::new(),
             primary_cursor_line_number: LineNumber::Absolute(0),

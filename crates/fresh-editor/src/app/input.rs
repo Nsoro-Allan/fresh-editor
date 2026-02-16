@@ -1,5 +1,5 @@
 use super::*;
-use crate::model::event::{CursorId, LeafId};
+use crate::model::event::LeafId;
 use crate::services::plugins::hooks::HookArgs;
 use anyhow::Result as AnyhowResult;
 use rust_i18n::t;
@@ -1343,11 +1343,12 @@ impl Editor {
             .and_then(|vs| vs.view_transform.as_ref())
             .map(|vt| vt.tokens.clone());
 
-        // Get mutable references to both buffer and view state
-        let buffer = self.buffers.get_mut(&buffer_id).map(|s| &mut s.buffer);
+        // Get mutable references to both buffer state and view state
+        let state = self.buffers.get_mut(&buffer_id);
         let view_state = self.split_view_states.get_mut(&active_split);
 
-        if let (Some(buffer), Some(view_state)) = (buffer, view_state) {
+        if let (Some(state), Some(view_state)) = (state, view_state) {
+            let buffer = &mut state.buffer;
             let top_byte_before = view_state.viewport.top_byte;
             if let Some(tokens) = view_transform_tokens {
                 // Use view-aware scrolling with the transform's tokens
@@ -1372,6 +1373,28 @@ impl Editor {
             }
             // Skip ensure_visible so the scroll position isn't undone during render
             view_state.viewport.set_skip_ensure_visible();
+
+            if let Some(folds) = view_state.keyed_states.get(&buffer_id).map(|bs| &bs.folds) {
+                if !folds.is_empty() {
+                    let top_line = buffer.get_line_number(view_state.viewport.top_byte);
+                    if let Some(range) = folds
+                        .resolved_ranges(buffer, &state.marker_list)
+                        .iter()
+                        .find(|r| top_line >= r.start_line && top_line <= r.end_line)
+                    {
+                        let target_line = if delta >= 0 {
+                            range.end_line.saturating_add(1)
+                        } else {
+                            range.header_line
+                        };
+                        let target_byte = buffer
+                            .line_start_offset(target_line)
+                            .unwrap_or_else(|| buffer.len());
+                        view_state.viewport.top_byte = target_byte;
+                        view_state.viewport.top_view_line_offset = 0;
+                    }
+                }
+            }
             tracing::trace!(
                 "handle_mouse_scroll: delta={}, top_byte {} -> {}",
                 delta,
@@ -2241,6 +2264,102 @@ impl Editor {
         }
     }
 
+    fn fold_toggle_line_from_position(
+        state: &crate::state::EditorState,
+        collapsed_headers: &std::collections::BTreeMap<usize, Option<String>>,
+        target_position: usize,
+        content_col: u16,
+        gutter_width: u16,
+    ) -> Option<usize> {
+        if content_col >= gutter_width {
+            return None;
+        }
+
+        let line = state.buffer.get_line_number(target_position);
+        let has_fold = state.folding_ranges.iter().any(|range| {
+            let start_line = range.start_line as usize;
+            let end_line = range.end_line as usize;
+            start_line == line && end_line > start_line
+        });
+        if has_fold || collapsed_headers.contains_key(&line) {
+            Some(line)
+        } else {
+            None
+        }
+    }
+
+    pub(super) fn fold_toggle_line_at_screen_position(
+        &self,
+        col: u16,
+        row: u16,
+    ) -> Option<(BufferId, usize)> {
+        for (split_id, buffer_id, content_rect, _scrollbar_rect, _thumb_start, _thumb_end) in
+            &self.cached_layout.split_areas
+        {
+            if col < content_rect.x
+                || col >= content_rect.x + content_rect.width
+                || row < content_rect.y
+                || row >= content_rect.y + content_rect.height
+            {
+                continue;
+            }
+
+            if self.is_terminal_buffer(*buffer_id) || self.is_composite_buffer(*buffer_id) {
+                continue;
+            }
+
+            let (gutter_width, collapsed_headers) = {
+                let state = self.buffers.get(buffer_id)?;
+                let headers = self
+                    .split_view_states
+                    .get(split_id)
+                    .map(|vs| {
+                        vs.folds
+                            .collapsed_headers(&state.buffer, &state.marker_list)
+                    })
+                    .unwrap_or_default();
+                (state.margins.left_total_width() as u16, headers)
+            };
+
+            let cached_mappings = self.cached_layout.view_line_mappings.get(split_id).cloned();
+            let fallback = self
+                .split_view_states
+                .get(split_id)
+                .map(|vs| vs.viewport.top_byte)
+                .unwrap_or(0);
+            let compose_width = self
+                .split_view_states
+                .get(split_id)
+                .and_then(|vs| vs.compose_width);
+
+            let target_position = Self::screen_to_buffer_position(
+                col,
+                row,
+                *content_rect,
+                gutter_width,
+                &cached_mappings,
+                fallback,
+                true,
+                compose_width,
+            )?;
+
+            let adjusted_rect = Self::adjust_content_rect_for_compose(*content_rect, compose_width);
+            let content_col = col.saturating_sub(adjusted_rect.x);
+            let state = self.buffers.get(buffer_id)?;
+            if let Some(line) = Self::fold_toggle_line_from_position(
+                state,
+                &collapsed_headers,
+                target_position,
+                content_col,
+                gutter_width,
+            ) {
+                return Some((*buffer_id, line));
+            }
+        }
+
+        None
+    }
+
     /// Handle click in editor content area
     pub(super) fn handle_editor_click(
         &mut self,
@@ -2251,7 +2370,7 @@ impl Editor {
         content_rect: ratatui::layout::Rect,
         modifiers: crossterm::event::KeyModifiers,
     ) -> AnyhowResult<()> {
-        use crate::model::event::Event;
+        use crate::model::event::{CursorId, Event};
         use crossterm::event::KeyModifiers;
         // Build modifiers string for plugins
         let modifiers_str = if modifiers.contains(KeyModifiers::SHIFT) {
@@ -2311,134 +2430,136 @@ impl Editor {
             .and_then(|vs| vs.compose_width);
 
         // Calculate clicked position in buffer
-        if let Some(state) = self.buffers.get_mut(&buffer_id) {
-            let gutter_width = state.margins.left_total_width() as u16;
+        let (toggle_fold_line, onclick_action, target_position, cursor_snapshot) =
+            if let Some(state) = self.buffers.get(&buffer_id) {
+                let gutter_width = state.margins.left_total_width() as u16;
 
-            let Some(target_position) = Self::screen_to_buffer_position(
-                col,
-                row,
-                content_rect,
-                gutter_width,
-                &cached_mappings,
-                fallback,
-                true, // Allow gutter clicks - position cursor at start of line
-                compose_width,
-            ) else {
-                return Ok(());
-            };
+                let Some(target_position) = Self::screen_to_buffer_position(
+                    col,
+                    row,
+                    content_rect,
+                    gutter_width,
+                    &cached_mappings,
+                    fallback,
+                    true, // Allow gutter clicks - position cursor at start of line
+                    compose_width,
+                ) else {
+                    return Ok(());
+                };
 
-            // Toggle fold on gutter click if this line is foldable/collapsed
-            let adjusted_rect = Self::adjust_content_rect_for_compose(content_rect, compose_width);
-            let content_col = col.saturating_sub(adjusted_rect.x);
-            let mut toggle_fold_line: Option<usize> = None;
-            if content_col < gutter_width {
-                let line = state.buffer.get_line_number(target_position);
-                let has_fold = state.folding_ranges.iter().any(|range| {
-                    let start_line = range.start_line as usize;
-                    let end_line = range.end_line as usize;
-                    start_line == line && end_line > start_line
-                });
-                let collapsed_headers = state
-                    .folds
-                    .collapsed_headers(&state.buffer, &state.marker_list);
-                if has_fold || collapsed_headers.contains_key(&line) {
-                    toggle_fold_line = Some(line);
-                }
-            }
-
-            if let Some(line) = toggle_fold_line {
-                let _ = state;
-                self.toggle_fold_at_line(buffer_id, line);
-                return Ok(());
-            }
-
-            // Check for onClick text property at this position
-            // This enables clickable UI elements in virtual buffers
-            let onclick_action = state
-                .text_properties
-                .get_at(target_position)
-                .iter()
-                .find_map(|prop| {
-                    prop.get("onClick")
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string())
-                });
-
-            if let Some(action_name) = onclick_action {
-                // Execute the action associated with this clickable element
-                tracing::debug!(
-                    "onClick triggered at position {}: action={}",
+                // Toggle fold on gutter click if this line is foldable/collapsed
+                let adjusted_rect =
+                    Self::adjust_content_rect_for_compose(content_rect, compose_width);
+                let content_col = col.saturating_sub(adjusted_rect.x);
+                let collapsed_headers = self
+                    .split_view_states
+                    .get(&split_id)
+                    .map(|vs| {
+                        vs.folds
+                            .collapsed_headers(&state.buffer, &state.marker_list)
+                    })
+                    .unwrap_or_default();
+                let toggle_fold_line = Self::fold_toggle_line_from_position(
+                    state,
+                    &collapsed_headers,
                     target_position,
-                    action_name
+                    content_col,
+                    gutter_width,
                 );
-                let empty_args = std::collections::HashMap::new();
-                if let Some(action) = Action::from_str(&action_name, &empty_args) {
-                    return self.handle_action(action);
-                }
-                return Ok(());
-            }
 
-            // Move the primary cursor to this position
-            // If shift is held, extend selection; otherwise clear it
-            let (primary_cursor_id, old_position, old_anchor) = self
-                .split_view_states
-                .get(&split_id)
-                .map(|vs| {
-                    let pc = vs.cursors.primary();
-                    (vs.cursors.primary_id(), pc.position, pc.anchor)
-                })
-                .unwrap_or((CursorId(0), 0, None));
+                let cursor_snapshot = self
+                    .split_view_states
+                    .get(&split_id)
+                    .map(|vs| {
+                        let cursor = vs.cursors.primary();
+                        (
+                            vs.cursors.primary_id(),
+                            cursor.position,
+                            cursor.anchor,
+                            cursor.sticky_column,
+                            cursor.deselect_on_move,
+                        )
+                    })
+                    .unwrap_or((CursorId(0), 0, None, 0, true));
 
-            // For shift+click or ctrl+click: extend selection from current anchor (or position if no anchor) to click
-            // Both modifiers supported since some terminals intercept shift+click
-            let extend_selection = modifiers.contains(KeyModifiers::SHIFT)
-                || modifiers.contains(KeyModifiers::CONTROL);
-            let new_anchor = if extend_selection {
-                // If already selecting, keep the existing anchor; otherwise anchor at current position
-                Some(old_anchor.unwrap_or(old_position))
+                // Check for onClick text property at this position
+                // This enables clickable UI elements in virtual buffers
+                let onclick_action = state
+                    .text_properties
+                    .get_at(target_position)
+                    .iter()
+                    .find_map(|prop| {
+                        prop.get("onClick")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string())
+                    });
+
+                (
+                    toggle_fold_line,
+                    onclick_action,
+                    target_position,
+                    cursor_snapshot,
+                )
             } else {
-                None // Clear selection on normal click
+                return Ok(());
             };
 
-            let event = Event::MoveCursor {
-                cursor_id: primary_cursor_id,
-                old_position,
-                new_position: target_position,
-                old_anchor,
-                new_anchor,
-                old_sticky_column: 0,
-                new_sticky_column: 0, // Reset sticky column for goto line
-            };
-
-            // Apply the event
-            if let Some(event_log) = self.event_logs.get_mut(&buffer_id) {
-                event_log.append(event.clone());
-            }
-            if let Some(cursors) = self
-                .split_view_states
-                .get_mut(&split_id)
-                .map(|vs| &mut vs.cursors)
-            {
-                state.apply(cursors, &event);
-            }
-
-            // Track position history
-            if !self.in_navigation {
-                self.position_history
-                    .record_movement(buffer_id, target_position, None);
-            }
-
-            // Set up drag selection state for potential text selection
-            self.mouse_state.dragging_text_selection = true;
-            self.mouse_state.drag_selection_split = Some(split_id);
-            // For shift+click, anchor stays at selection start; otherwise anchor at click position
-            self.mouse_state.drag_selection_anchor = Some(new_anchor.unwrap_or(target_position));
-
-            // Fire cursor_moved hook so plugins (e.g. markdown compose) can
-            // update cursor-aware conceals (auto-expose emphasis markers).
-            let line_info = self.calculate_event_line_info(&event);
-            self.trigger_plugin_hooks_for_event(&event, line_info);
+        if let Some(line) = toggle_fold_line {
+            self.toggle_fold_at_line(buffer_id, line);
+            return Ok(());
         }
+
+        let (primary_cursor_id, old_position, old_anchor, old_sticky_column, deselect_on_move) =
+            cursor_snapshot;
+
+        if let Some(action_name) = onclick_action {
+            // Execute the action associated with this clickable element
+            tracing::debug!(
+                "onClick triggered at position {}: action={}",
+                target_position,
+                action_name
+            );
+            let empty_args = std::collections::HashMap::new();
+            if let Some(action) = Action::from_str(&action_name, &empty_args) {
+                return self.handle_action(action);
+            }
+            return Ok(());
+        }
+
+        // Move cursor to clicked position (respect shift for selection)
+        let new_anchor = if modifiers.contains(KeyModifiers::SHIFT) {
+            Some(old_anchor.unwrap_or(old_position))
+        } else if deselect_on_move {
+            None
+        } else {
+            old_anchor
+        };
+
+        let new_sticky_column = self
+            .buffers
+            .get(&buffer_id)
+            .and_then(|state| state.buffer.offset_to_position(target_position))
+            .map(|pos| pos.column)
+            .unwrap_or(0);
+
+        let event = Event::MoveCursor {
+            cursor_id: primary_cursor_id,
+            old_position,
+            new_position: target_position,
+            old_anchor,
+            new_anchor,
+            old_sticky_column,
+            new_sticky_column,
+        };
+
+        self.active_event_log_mut().append(event.clone());
+        self.apply_event_to_active_buffer(&event);
+        self.track_cursor_movement(&event);
+
+        // Start text selection drag for potential mouse drag
+        self.mouse_state.dragging_text_selection = true;
+        self.mouse_state.drag_selection_split = Some(split_id);
+        self.mouse_state.drag_selection_anchor = Some(new_anchor.unwrap_or(target_position));
 
         Ok(())
     }
@@ -3514,7 +3635,7 @@ impl Editor {
     }
 
     /// Track cursor movement in position history if applicable.
-    fn track_cursor_movement(&mut self, event: &Event) {
+    pub(super) fn track_cursor_movement(&mut self, event: &Event) {
         if self.in_navigation {
             return;
         }

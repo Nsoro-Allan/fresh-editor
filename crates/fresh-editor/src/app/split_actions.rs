@@ -10,6 +10,7 @@
 use rust_i18n::t;
 
 use crate::model::event::{BufferId, ContainerId, Event, LeafId, SplitDirection, SplitId};
+use crate::view::folding::CollapsedFoldLineRange;
 use crate::view::split::SplitViewState;
 
 use super::Editor;
@@ -31,10 +32,28 @@ impl Editor {
         let active_split = self.split_manager.active_split();
 
         // Copy keyed states from source split so the new split inherits per-buffer state
-        let source_keyed_states = self
-            .split_view_states
-            .get(&active_split)
-            .map(|vs| vs.keyed_states.clone());
+        let source_keyed_states = self.split_view_states.get(&active_split).map(|vs| {
+            vs.keyed_states
+                .iter()
+                .filter(|(&buf_id, _)| buf_id != current_buffer_id)
+                .map(|(&buf_id, buf_state)| {
+                    let folds = self
+                        .buffers
+                        .get(&buf_id)
+                        .map(|state| {
+                            buf_state
+                                .folds
+                                .collapsed_line_ranges(&state.buffer, &state.marker_list)
+                        })
+                        .unwrap_or_default();
+                    (buf_id, buf_state.clone(), folds)
+                })
+                .collect::<Vec<(
+                    BufferId,
+                    crate::view::split::BufferViewState,
+                    Vec<CollapsedFoldLineRange>,
+                )>>()
+        });
 
         match self
             .split_manager
@@ -53,10 +72,32 @@ impl Editor {
                 // Copy keyed states from source split for OTHER buffers (not the active one).
                 // The active buffer gets a fresh cursor in the new split.
                 if let Some(source) = source_keyed_states {
-                    for (buf_id, buf_state) in source {
-                        if buf_id != current_buffer_id {
-                            view_state.keyed_states.insert(buf_id, buf_state);
+                    for (buf_id, mut buf_state, folds) in source {
+                        if let Some(state) = self.buffers.get_mut(&buf_id) {
+                            buf_state.folds.clear(&mut state.marker_list);
+                            for fold in folds {
+                                let start_line = fold.header_line.saturating_add(1);
+                                let end_line = fold.end_line;
+                                if start_line > end_line {
+                                    continue;
+                                }
+                                let Some(start_byte) = state.buffer.line_start_offset(start_line)
+                                else {
+                                    continue;
+                                };
+                                let end_byte = state
+                                    .buffer
+                                    .line_start_offset(end_line.saturating_add(1))
+                                    .unwrap_or_else(|| state.buffer.len());
+                                buf_state.folds.add(
+                                    &mut state.marker_list,
+                                    start_byte,
+                                    end_byte,
+                                    fold.placeholder.clone(),
+                                );
+                            }
                         }
+                        view_state.keyed_states.insert(buf_id, buf_state);
                     }
                 }
 
