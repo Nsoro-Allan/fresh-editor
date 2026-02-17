@@ -475,7 +475,7 @@
   "cmd.paste": "Pegar",
   "cmd.paste_desc": "Pegar desde el portapapeles",
   "cmd.play_last_macro": "Reproducir última macro",
-  "cmd.play_last_macro_desc": "Reproducir la última macro grabada (F4)",
+  "cmd.play_last_macro_desc": "Reproducir la última macro grabada",
   "cmd.play_macro": "Reproducir macro",
   "cmd.play_macro_desc": "Reproducir macro desde un registro (0-9)",
   "cmd.previous_buffer": "Buffer anterior",

@@ -475,7 +475,7 @@
   "cmd.paste": "붙여넣기",
   "cmd.paste_desc": "클립보드에서 붙여넣기",
   "cmd.play_last_macro": "마지막 매크로 재생",
-  "cmd.play_last_macro_desc": "마지막으로 녹화한 매크로 재생 (F4)",
+  "cmd.play_last_macro_desc": "마지막으로 녹화한 매크로 재생",
   "cmd.play_macro": "매크로 재생",
   "cmd.play_macro_desc": "레지스터의 매크로 재생 (0-9)",
   "cmd.previous_buffer": "이전 버퍼",

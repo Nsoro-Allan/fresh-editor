@@ -475,7 +475,7 @@
   "cmd.paste": "貼り付け",
   "cmd.paste_desc": "クリップボードから貼り付けます",
   "cmd.play_last_macro": "最後のマクロを再生",
-  "cmd.play_last_macro_desc": "最後に記録されたマクロを再生します（F4）",
+  "cmd.play_last_macro_desc": "最後に記録されたマクロを再生します",
   "cmd.play_macro": "マクロを再生",
   "cmd.play_macro_desc": "レジスタ（0-9）からマクロを再生します",
   "cmd.previous_buffer": "前のバッファ",

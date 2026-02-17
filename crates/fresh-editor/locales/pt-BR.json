@@ -475,7 +475,7 @@
   "cmd.paste": "Colar",
   "cmd.paste_desc": "Colar da área de transferência",
   "cmd.play_last_macro": "Reproduzir Última Macro",
-  "cmd.play_last_macro_desc": "Reproduzir a última macro gravada (F4)",
+  "cmd.play_last_macro_desc": "Reproduzir a última macro gravada",
   "cmd.play_macro": "Reproduzir Macro",
   "cmd.play_macro_desc": "Reproduzir macro de um registrador (0-9)",
   "cmd.previous_buffer": "Buffer Anterior",

@@ -475,7 +475,7 @@
   "cmd.paste": "粘贴",
   "cmd.paste_desc": "从剪贴板粘贴",
   "cmd.play_last_macro": "播放上次的宏",
-  "cmd.play_last_macro_desc": "播放上次录制的宏（F4）",
+  "cmd.play_last_macro_desc": "播放上次录制的宏",
   "cmd.play_macro": "播放宏",
   "cmd.play_macro_desc": "从寄存器播放宏（0-9）",
   "cmd.previous_buffer": "上一个缓冲区",

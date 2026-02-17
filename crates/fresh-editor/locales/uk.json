@@ -475,7 +475,7 @@
   "cmd.paste": "Вставити",
   "cmd.paste_desc": "Вставити з буфера обміну",
   "cmd.play_last_macro": "Відтворити останній макрос",
-  "cmd.play_last_macro_desc": "Відтворити останній записаний макрос (F4)",
+  "cmd.play_last_macro_desc": "Відтворити останній записаний макрос",
   "cmd.play_macro": "Відтворити макрос",
   "cmd.play_macro_desc": "Відтворити макрос з регістра (0-9)",
   "cmd.previous_buffer": "Попередній буфер",

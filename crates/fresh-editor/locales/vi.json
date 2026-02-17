@@ -486,7 +486,7 @@
   "cmd.paste": "Dán",
   "cmd.paste_desc": "Dán từ clipboard",
   "cmd.play_last_macro": "Phát macro gần nhất",
-  "cmd.play_last_macro_desc": "Phát macro đã ghi gần nhất (F4)",
+  "cmd.play_last_macro_desc": "Phát macro đã ghi gần nhất",
   "cmd.play_macro": "Phát macro",
   "cmd.play_macro_desc": "Phát macro từ thanh ghi (0-9)",
   "cmd.previous_buffer": "Buffer trước đó",

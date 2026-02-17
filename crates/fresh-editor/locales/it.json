@@ -475,7 +475,7 @@
   "cmd.paste": "Incolla",
   "cmd.paste_desc": "Incolla dagli appunti",
   "cmd.play_last_macro": "Riproduci l'ultima macro",
-  "cmd.play_last_macro_desc": "Riproduce l'ultima macro registrata (F4)",
+  "cmd.play_last_macro_desc": "Riproduce l'ultima macro registrata",
   "cmd.play_macro": "Riproduci macro",
   "cmd.play_macro_desc": "Riproduce una macro da un registro (0-9)",
   "cmd.previous_buffer": "Buffer precedente",

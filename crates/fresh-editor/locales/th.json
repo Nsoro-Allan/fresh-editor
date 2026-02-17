@@ -475,7 +475,7 @@
   "cmd.paste": "วาง",
   "cmd.paste_desc": "วางจากคลิปบอร์ด",
   "cmd.play_last_macro": "เล่นมาโครล่าสุด",
-  "cmd.play_last_macro_desc": "เล่นมาโครที่บันทึกไว้ล่าสุด (F4)",
+  "cmd.play_last_macro_desc": "เล่นมาโครที่บันทึกไว้ล่าสุด",
   "cmd.play_macro": "เล่นมาโคร",
   "cmd.play_macro_desc": "เล่นมาโครจากเรจิสเตอร์ (0-9)",
   "cmd.previous_buffer": "บัฟเฟอร์ก่อนหน้า",

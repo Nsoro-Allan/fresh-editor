@@ -475,7 +475,7 @@
   "cmd.paste": "Vložit",
   "cmd.paste_desc": "Vložit ze schránky",
   "cmd.play_last_macro": "Přehrát poslední makro",
-  "cmd.play_last_macro_desc": "Přehrát poslední nahrané makro (F4)",
+  "cmd.play_last_macro_desc": "Přehrát poslední nahrané makro",
   "cmd.play_macro": "Přehrát makro",
   "cmd.play_macro_desc": "Přehrát makro z registru (0-9)",
   "cmd.previous_buffer": "Předchozí buffer",

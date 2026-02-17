@@ -485,7 +485,7 @@
   "cmd.paste": "Paste",
   "cmd.paste_desc": "Paste from clipboard",
   "cmd.play_last_macro": "Play Last Macro",
-  "cmd.play_last_macro_desc": "Play the last recorded macro (F4)",
+  "cmd.play_last_macro_desc": "Play the last recorded macro",
   "cmd.play_macro": "Play Macro",
   "cmd.play_macro_desc": "Play macro from a register (0-9)",
   "cmd.previous_buffer": "Previous Buffer",

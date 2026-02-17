@@ -475,7 +475,7 @@
   "cmd.paste": "Einfügen",
   "cmd.paste_desc": "Aus der Zwischenablage einfügen",
   "cmd.play_last_macro": "Letztes Makro abspielen",
-  "cmd.play_last_macro_desc": "Das zuletzt aufgezeichnete Makro abspielen (F4)",
+  "cmd.play_last_macro_desc": "Das zuletzt aufgezeichnete Makro abspielen",
   "cmd.play_macro": "Makro abspielen",
   "cmd.play_macro_desc": "Makro aus einem Register abspielen (0-9)",
   "cmd.previous_buffer": "Vorheriger Buffer",

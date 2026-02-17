@@ -475,7 +475,7 @@
   "cmd.paste": "Coller",
   "cmd.paste_desc": "Coller depuis le presse-papiers",
   "cmd.play_last_macro": "Lire la dernière macro",
-  "cmd.play_last_macro_desc": "Lire la dernière macro enregistrée (F4)",
+  "cmd.play_last_macro_desc": "Lire la dernière macro enregistrée",
   "cmd.play_macro": "Lire la macro",
   "cmd.play_macro_desc": "Lire la macro à partir d'un registre (0-9)",
   "cmd.previous_buffer": "Tampon précédent",
