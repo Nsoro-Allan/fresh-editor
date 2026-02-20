@@ -44,7 +44,7 @@ impl Editor {
         }
 
         self.pending_completion_request = None;
-        self.lsp_status.clear();
+        self.update_lsp_status_from_server_statuses();
 
         if items.is_empty() {
             tracing::debug!("No completion items received");
@@ -308,7 +308,7 @@ impl Editor {
             tracing::debug!("Canceling pending LSP completion request {}", request_id);
             // Send cancellation to the LSP server
             self.send_lsp_cancel_request(request_id);
-            self.lsp_status.clear();
+            self.update_lsp_status_from_server_statuses();
         }
         if let Some(request_id) = self.pending_goto_definition_request.take() {
             tracing::debug!(
@@ -317,7 +317,7 @@ impl Editor {
             );
             // Send cancellation to the LSP server
             self.send_lsp_cancel_request(request_id);
-            self.lsp_status.clear();
+            self.update_lsp_status_from_server_statuses();
         }
     }
 
@@ -655,7 +655,7 @@ impl Editor {
         }
 
         self.pending_hover_request = None;
-        self.lsp_status.clear();
+        self.update_lsp_status_from_server_statuses();
 
         if contents.is_empty() {
             self.set_status_message(t!("lsp.no_hover").to_string());
@@ -993,7 +993,7 @@ impl Editor {
         }
 
         self.pending_signature_help_request = None;
-        self.lsp_status.clear();
+        self.update_lsp_status_from_server_statuses();
 
         let signature_help = match signature_help {
             Some(help) if !help.signatures.is_empty() => help,
@@ -1170,7 +1170,7 @@ impl Editor {
         }
 
         self.pending_code_actions_request = None;
-        self.lsp_status.clear();
+        self.update_lsp_status_from_server_statuses();
 
         if actions.is_empty() {
             self.set_status_message(t!("lsp.no_code_actions").to_string());
@@ -1237,7 +1237,7 @@ impl Editor {
         }
 
         self.pending_references_request = None;
-        self.lsp_status.clear();
+        self.update_lsp_status_from_server_statuses();
 
         if locations.is_empty() {
             self.set_status_message(t!("lsp.no_references").to_string());
@@ -1400,7 +1400,7 @@ impl Editor {
         _request_id: u64,
         result: Result<lsp_types::WorkspaceEdit, String>,
     ) -> AnyhowResult<()> {
-        self.lsp_status.clear();
+        self.update_lsp_status_from_server_statuses();
 
         match result {
             Ok(workspace_edit) => {
