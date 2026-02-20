@@ -200,7 +200,8 @@ impl LspClientState {
 /// Create common LSP client capabilities with workDoneProgress support
 fn create_client_capabilities() -> ClientCapabilities {
     use lsp_types::{
-        GeneralClientCapabilities, RenameClientCapabilities, TextDocumentClientCapabilities,
+        DiagnosticTag, GeneralClientCapabilities, PublishDiagnosticsClientCapabilities,
+        RenameClientCapabilities, TagSupport, TextDocumentClientCapabilities,
         WorkspaceClientCapabilities, WorkspaceEditClientCapabilities,
     };
 
@@ -223,6 +224,15 @@ fn create_client_capabilities() -> ClientCapabilities {
                 prepare_support: Some(true),
                 honors_change_annotations: Some(true),
                 ..Default::default()
+            }),
+            publish_diagnostics: Some(PublishDiagnosticsClientCapabilities {
+                related_information: Some(true),
+                tag_support: Some(TagSupport {
+                    value_set: vec![DiagnosticTag::UNNECESSARY, DiagnosticTag::DEPRECATED],
+                }),
+                version_support: Some(true),
+                code_description_support: Some(true),
+                data_support: Some(true),
             }),
             semantic_tokens: Some(SemanticTokensClientCapabilities {
                 dynamic_registration: Some(true),

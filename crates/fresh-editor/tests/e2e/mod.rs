@@ -39,6 +39,7 @@ pub mod lsp_completion_french_locale;
 pub mod lsp_completion_popup_behavior;
 pub mod lsp_config;
 pub mod lsp_order;
+pub mod lsp_publish_diagnostics_capability;
 pub mod lsp_toggle_desync;
 pub mod macros;
 pub mod margin;
