@@ -112,6 +112,9 @@ export interface FinderConfig<T> {
 
   /** Panel-specific: sync cursor with editor */
   syncWithEditor?: boolean;
+
+  /** Panel-specific: navigate source split when cursor moves (preview without focus change) */
+  navigateOnCursorMove?: boolean;
 }
 
 /**
@@ -410,6 +413,7 @@ export class Finder<T> {
       maxResults: 100,
       groupBy: "none",
       syncWithEditor: false,
+      navigateOnCursorMove: false,
       ...config,
     };
 
@@ -1016,6 +1020,24 @@ export class Finder<T> {
         self.editor.setStatus(
           `Item ${itemIndex + 1}/${self.panelState.items.length}`
         );
+
+        // Navigate source split to show the item's location (without focus change)
+        if (self.config.navigateOnCursorMove) {
+          const entry = self.panelState.entries[itemIndex];
+          if (
+            entry.location &&
+            self.panelState.sourceSplitId !== null &&
+            self.panelState.splitId !== null
+          ) {
+            self.editor.openFileInSplit(
+              self.panelState.sourceSplitId,
+              entry.location.file,
+              entry.location.line,
+              entry.location.column
+            );
+            self.editor.focusSplit(self.panelState.splitId);
+          }
+        }
       }
     };
 

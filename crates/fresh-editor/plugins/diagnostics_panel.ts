@@ -125,6 +125,7 @@ const finder = new Finder<DiagnosticItem>(editor, {
   }),
   groupBy: "file",
   syncWithEditor: true,
+  navigateOnCursorMove: true,
 });
 
 // Get title based on current filter state
@@ -216,6 +217,11 @@ globalThis.on_diagnostics_buffer_activated = function (data: {
   buffer_id: number;
 }): void {
   if (!isOpen) return;
+
+  // Skip virtual buffers (e.g. the diagnostics panel itself) — they have no
+  // file path and would clear the filtered diagnostics list.
+  const path = editor.getBufferPath(data.buffer_id);
+  if (!path) return;
 
   // Update source buffer
   sourceBufferId = data.buffer_id;
