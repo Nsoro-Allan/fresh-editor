@@ -382,3 +382,150 @@ fn test_folded_viewport_inside_range_fills_lines() {
         "Expected viewport to be filled with content, not tildes. Bottom row: '{bottom_row_text}'"
     );
 }
+
+/// Extract a 0-indexed line number from content matching the pattern "line X".
+fn parse_content_line_num(content: &str) -> Option<usize> {
+    let pos = content.find("line ")?;
+    let after = &content[pos + 5..];
+    let num_str: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
+    if num_str.is_empty() {
+        return None;
+    }
+    num_str.parse().ok()
+}
+
+/// For every visible row, assert that the gutter line number matches the "line X"
+/// content on that row.  Gutter numbers are 1-indexed; content uses 0-indexed
+/// "line X".  Rows that don't have a parseable line number (continuations, tilde
+/// lines) are skipped.
+fn assert_gutter_matches_content(harness: &EditorTestHarness) {
+    let (start_row, end_row) = harness.content_area_rows();
+    let mut checked = 0usize;
+
+    for row in start_row..=end_row {
+        let text = harness.get_row_text(row as u16);
+
+        // Skip tilde lines (EOF markers)
+        if text.trim_start().starts_with('~') {
+            continue;
+        }
+
+        // The gutter and content are separated by '│'.
+        let Some(sep) = text.find('│') else {
+            continue;
+        };
+        let gutter = &text[..sep];
+        let content = &text[sep + '│'.len_utf8()..];
+
+        // Extract the line number from the gutter (digits only, ignoring indicators).
+        let digits: String = gutter.chars().filter(|c| c.is_ascii_digit()).collect();
+        let Ok(gutter_num) = digits.parse::<usize>() else {
+            continue; // continuation / blank gutter
+        };
+
+        // Extract the 0-indexed number from "line X" in the content.
+        let Some(content_num) = parse_content_line_num(content) else {
+            continue;
+        };
+
+        assert_eq!(
+            gutter_num,
+            content_num + 1,
+            "Gutter shows {} but content is 'line {}' (expected gutter {})\nRow {}: '{}'",
+            gutter_num,
+            content_num,
+            content_num + 1,
+            row,
+            text,
+        );
+        checked += 1;
+    }
+    assert!(checked > 0, "Should have verified at least one line number");
+}
+
+/// Reproduce the gutter-line-number bug after folding.
+///
+/// With a fold active, `current_source_line_num` in the renderer increments
+/// sequentially instead of reflecting the true buffer line.  This test creates
+/// a 60-line file, folds lines 10..30 via a fake LSP, then scrolls down and
+/// back up one line at a time, checking every rendered frame.
+#[test]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "FakeLspServer uses a Bash script which is not available on Windows"
+)]
+fn test_folded_gutter_line_numbers_match_content_during_scroll() -> anyhow::Result<()> {
+    use crate::common::fake_lsp::FakeLspServer;
+
+    // 1. Spawn fake LSP that advertises foldingRangeProvider and returns
+    //    a single range covering lines 10..30.
+    let _fake_server = FakeLspServer::spawn_with_folding_ranges()?;
+
+    // 2. Create a 60-line file where every line is "line N\n".
+    let temp_dir = tempfile::tempdir()?;
+    let content: String = (0..60).map(|i| format!("line {i}\n")).collect();
+    let test_file = temp_dir.path().join("test.rs");
+    std::fs::write(&test_file, &content)?;
+
+    // 3. Wire up the editor to use the fake LSP for Rust files.
+    //    Semantic tokens must be enabled because the current render path only
+    //    calls maybe_request_folding_ranges_debounced inside the semantic-ranges
+    //    loop.
+    let mut config = fresh::config::Config::default();
+    config.editor.enable_semantic_tokens_full = true;
+    config.lsp.insert(
+        "rust".to_string(),
+        fresh::services::lsp::LspServerConfig {
+            command: FakeLspServer::folding_ranges_script_path()
+                .to_string_lossy()
+                .to_string(),
+            args: vec![],
+            enabled: true,
+            auto_start: true,
+            process_limits: fresh::services::process_limits::ProcessLimits::default(),
+            initialization_options: None,
+        },
+    );
+
+    let mut harness = EditorTestHarness::with_config_and_working_dir(
+        80,
+        30,
+        config,
+        temp_dir.path().to_path_buf(),
+    )?;
+
+    harness.open_file(&test_file)?;
+    harness.render()?;
+
+    // 4. Wait for the LSP to deliver folding ranges (the expand indicator ▾
+    //    appears in the gutter once ranges are available).
+    harness.wait_for_screen_contains("▾")?;
+
+    // 5. Collapse the fold by clicking the gutter indicator at line 10.
+    let fold_row = layout::CONTENT_START_ROW as u16 + 10;
+    harness.mouse_click(0, fold_row)?;
+
+    // Sanity: fold indicator should now be the collapsed marker ▸.
+    harness.assert_screen_contains("▸");
+    // Hidden lines must disappear, first post-fold line must be visible.
+    harness.assert_screen_not_contains("line 11");
+    harness.assert_screen_contains("line 31");
+
+    // 6. Verify gutter numbers are correct in the initial view.
+    assert_gutter_matches_content(&harness);
+
+    // 7. Scroll down one line at a time, checking at every step.
+    //    60 presses is more than enough to reach the end (only ~40 visible lines).
+    for _ in 0..60 {
+        harness.send_key(KeyCode::Down, KeyModifiers::NONE)?;
+        assert_gutter_matches_content(&harness);
+    }
+
+    // 8. Scroll back up, checking at every step.
+    for _ in 0..60 {
+        harness.send_key(KeyCode::Up, KeyModifiers::NONE)?;
+        assert_gutter_matches_content(&harness);
+    }
+
+    Ok(())
+}
