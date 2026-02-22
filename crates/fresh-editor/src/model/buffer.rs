@@ -2066,6 +2066,13 @@ impl TextBuffer {
                             .load(&*self.fs)
                             .context("Failed to load chunk")?;
 
+                        // Splits create leaves with line_feed_cnt: None.
+                        // If we had scanned line feeds, repair the counts so
+                        // exact line numbers survive chunk loading.
+                        if self.line_feeds_scanned {
+                            self.repair_line_feed_counts();
+                        }
+
                         // Restart iteration with the modified tree
                         restarted_iteration = true;
                         break;
@@ -2448,6 +2455,61 @@ impl TextBuffer {
     pub fn apply_scan_updates(&mut self, updates: &[(usize, usize)]) {
         self.piece_tree.update_leaf_line_feeds(updates);
         self.line_feeds_scanned = true;
+    }
+
+    /// Repair any leaves that lost their `line_feed_cnt` during a piece tree split.
+    ///
+    /// When `line_feeds_scanned` is true, every leaf should have a known count.
+    /// Tree splits (e.g. from chunk loading in `get_text_range_mut`) can produce
+    /// new leaves with `None` because `compute_line_feeds_static` can't read
+    /// unloaded buffers. This method fixes those leaves by reading from disk
+    /// or from loaded buffer data.
+    fn repair_line_feed_counts(&mut self) {
+        let leaves = self.piece_tree.get_leaves();
+        let mut updates = Vec::new();
+
+        for (idx, leaf) in leaves.iter().enumerate() {
+            if leaf.line_feed_cnt.is_some() {
+                continue;
+            }
+
+            let buffer_id = leaf.location.buffer_id();
+            let Some(buffer) = self.buffers.get(buffer_id) else {
+                continue;
+            };
+
+            let count = match &buffer.data {
+                crate::model::piece_tree::BufferData::Loaded { data, .. } => {
+                    let end = (leaf.offset + leaf.bytes).min(data.len());
+                    data[leaf.offset..end]
+                        .iter()
+                        .filter(|&&b| b == b'\n')
+                        .count()
+                }
+                crate::model::piece_tree::BufferData::Unloaded {
+                    file_path,
+                    file_offset,
+                    ..
+                } => {
+                    let read_offset = *file_offset as u64 + leaf.offset as u64;
+                    match self.fs.read_range(file_path, read_offset, leaf.bytes) {
+                        Ok(data) => data.iter().filter(|&&b| b == b'\n').count(),
+                        Err(e) => {
+                            tracing::warn!(
+                                "repair_line_feed_counts: failed to read leaf {idx}: {e}"
+                            );
+                            continue;
+                        }
+                    }
+                }
+            };
+
+            updates.push((idx, count));
+        }
+
+        if !updates.is_empty() {
+            self.piece_tree.update_leaf_line_feeds(&updates);
+        }
     }
 
     /// Resolve the exact byte offset for a given line number (0-indexed).
