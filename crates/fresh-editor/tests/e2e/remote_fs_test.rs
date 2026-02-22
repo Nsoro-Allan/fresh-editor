@@ -234,6 +234,11 @@ fn test_remote_large_file_edits_beginning_middle_end() {
         harness
             .send_key(KeyCode::Char('g'), KeyModifiers::CONTROL)
             .unwrap();
+        // Dismiss the scan confirmation prompt (approximate line numbers in large file mode)
+        let _ = harness.type_text("n");
+        harness
+            .send_key(KeyCode::Enter, KeyModifiers::NONE)
+            .unwrap();
         println!("target line: {}", target);
         let _ = harness.type_text(&format!("{}", target).to_string());
         println!("{}", harness.screen_to_string());

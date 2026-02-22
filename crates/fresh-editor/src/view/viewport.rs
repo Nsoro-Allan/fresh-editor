@@ -150,11 +150,22 @@ impl Viewport {
     /// This is a heuristic that assumes approximately 80 chars per line
     pub fn gutter_width(&self, buffer: &Buffer) -> usize {
         let buffer_len = buffer.len();
-        let estimated_lines = (buffer_len / 80).max(1);
-        let digits = if estimated_lines == 0 {
+        let approximate = buffer.line_count().is_none();
+        let estimated_lines = if approximate {
+            (buffer_len / 80).max(1)
+        } else {
+            buffer.line_count().unwrap_or(1)
+        };
+        // When approximate, multiply by 10 to add one digit of width for the ~ prefix
+        let gutter_estimate = if approximate {
+            estimated_lines.saturating_mul(10).max(10)
+        } else {
+            estimated_lines
+        };
+        let digits = if gutter_estimate == 0 {
             1
         } else {
-            ((estimated_lines as f64).log10().floor() as usize) + 1
+            ((gutter_estimate as f64).log10().floor() as usize) + 1
         };
         // 1 (indicator) + minimum 4 digits for readability + 3 (" │ ")
         1 + digits.max(4) + 3

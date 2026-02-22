@@ -220,16 +220,19 @@ fn test_cursor_position_with_large_line_numbers() {
     // Note: For large files, line numbers are estimated when jumping to end
     // The estimation is based on buffer_len / 80 (average line length)
     // Continuation lines have only whitespace before "│", so filter those out
+    // Line numbers may have a ~ prefix when approximate (large file without line scan)
     let numbered_lines: Vec<&str> = content_lines
         .iter()
         .filter(|line| {
             let part = line.split("│").next().unwrap_or("").trim();
+            let part = part.strip_prefix('~').unwrap_or(part);
             !part.is_empty() && part.chars().all(|c| c.is_ascii_digit())
         })
         .copied()
         .collect();
     if let Some(last_line) = numbered_lines.last() {
         let line_num_part = last_line.split("│").next().unwrap_or("").trim();
+        let line_num_part = line_num_part.strip_prefix('~').unwrap_or(line_num_part);
         let line_num: usize = line_num_part.parse().unwrap_or(0);
         println!("Last visible line number: {line_num} (may be estimated)");
 
@@ -260,13 +263,16 @@ fn test_cursor_position_with_large_line_numbers() {
 
     // Now verify cursor positioning is correct for the gutter width
     // The gutter width is based on estimated lines (~912,500)
-    // Format: [indicator (1)] + [6 digits] + [" │ " (3 chars)] = 10 chars total
-    println!("\nExpected gutter width: 10 (1 + 6 + 3 for 6-digit estimated line numbers)");
+    // For approximate line numbers (large file), gutter adds 1 extra digit for ~ prefix
+    // Format: [indicator (1)] + [7 digits] + [" │ " (3 chars)] = 11 chars total
+    println!(
+        "\nExpected gutter width: 11 (1 + 7 + 3 for ~6-digit estimated line numbers with ~ prefix)"
+    );
     println!("Actual gutter_width: {gutter_width}");
 
     assert_eq!(
-        gutter_width, 10,
-        "Gutter width {gutter_width} doesn't match expected 10"
+        gutter_width, 11,
+        "Gutter width {gutter_width} doesn't match expected 11"
     );
 
     // The cursor should be positioned AFTER the gutter (at position gutter_width)
