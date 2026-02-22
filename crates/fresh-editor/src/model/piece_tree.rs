@@ -436,6 +436,81 @@ impl PieceTreeNode {
         }
     }
 
+    /// Path-copy update of a single leaf's line_feed_cnt by leaf index.
+    /// Returns (new_node, true) if the leaf was found and updated, or
+    /// (clone of self, false) if leaf_index was out of range.
+    /// Only clones nodes along the root-to-leaf path; sibling subtrees
+    /// are shared via Arc, preserving Arc::ptr_eq for unmodified regions.
+    fn update_leaf_lf_by_index(
+        self: &Arc<Self>,
+        leaf_index: usize,
+        lf_count: usize,
+    ) -> (Arc<Self>, bool) {
+        match self.as_ref() {
+            Self::Leaf {
+                location,
+                offset,
+                bytes,
+                ..
+            } => {
+                if leaf_index == 0 {
+                    (
+                        Arc::new(Self::Leaf {
+                            location: *location,
+                            offset: *offset,
+                            bytes: *bytes,
+                            line_feed_cnt: Some(lf_count),
+                        }),
+                        true,
+                    )
+                } else {
+                    (Arc::clone(self), false)
+                }
+            }
+            Self::Internal {
+                left_bytes,
+                lf_left,
+                left,
+                right,
+            } => {
+                let left_leaf_count = left.count_leaves();
+                if leaf_index < left_leaf_count {
+                    let (new_left, found) = left.update_leaf_lf_by_index(leaf_index, lf_count);
+                    if found {
+                        let new_lf_left = new_left.total_line_feeds();
+                        (
+                            Arc::new(Self::Internal {
+                                left_bytes: *left_bytes,
+                                lf_left: new_lf_left,
+                                left: new_left,
+                                right: Arc::clone(right),
+                            }),
+                            true,
+                        )
+                    } else {
+                        (Arc::clone(self), false)
+                    }
+                } else {
+                    let (new_right, found) =
+                        right.update_leaf_lf_by_index(leaf_index - left_leaf_count, lf_count);
+                    if found {
+                        (
+                            Arc::new(Self::Internal {
+                                left_bytes: *left_bytes,
+                                lf_left: *lf_left,
+                                left: Arc::clone(left),
+                                right: new_right,
+                            }),
+                            true,
+                        )
+                    } else {
+                        (Arc::clone(self), false)
+                    }
+                }
+            }
+        }
+    }
+
     /// Collect all leaves in order
     fn collect_leaves(&self, leaves: &mut Vec<LeafData>) {
         match self {
@@ -1418,6 +1493,16 @@ impl PieceTree {
         }
 
         self.root = Self::build_balanced(&leaves);
+    }
+
+    /// Update leaf line feed counts using path-copying.
+    /// Like `update_leaf_line_feeds` but only clones nodes along each updated
+    /// leaf's root-to-leaf path, preserving `Arc::ptr_eq` for unmodified subtrees.
+    pub fn update_leaf_line_feeds_path_copy(&mut self, updates: &[(usize, usize)]) {
+        for &(idx, lf_count) in updates {
+            let (new_root, _) = self.root.update_leaf_lf_by_index(idx, lf_count);
+            self.root = new_root;
+        }
     }
 
     /// Get tree statistics for debugging

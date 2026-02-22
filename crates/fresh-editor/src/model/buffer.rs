@@ -1446,6 +1446,7 @@ impl TextBuffer {
                 equal: true,
                 byte_ranges: Vec::new(),
                 line_ranges: Some(Vec::new()),
+                nodes_visited: 0,
             };
         }
 
@@ -1482,6 +1483,7 @@ impl TextBuffer {
                     equal: true,
                     byte_ranges: Vec::new(),
                     line_ranges: Some(Vec::new()),
+                    nodes_visited: structure_diff.nodes_visited,
                 };
             }
         }
@@ -2560,7 +2562,7 @@ impl TextBuffer {
             }
         }
         if !fixups.is_empty() {
-            tree.update_leaf_line_feeds(&fixups);
+            tree.update_leaf_line_feeds_path_copy(&fixups);
         }
 
         self.piece_tree = tree;
@@ -5699,6 +5701,69 @@ mod tests {
                 "after rebuild with edits, line_count must be exact"
             );
             assert!(buf.line_feeds_scanned);
+        }
+
+        /// After rebuild, diff_since_saved should visit a small number of nodes
+        /// proportional to edit regions, NOT the full tree. This catches
+        /// regressions where Arc pointers are accidentally destroyed (e.g. by
+        /// flattening and rebuilding the tree).
+        #[test]
+        fn test_diff_efficiency_after_rebuild() {
+            // Use 32MB so the tree has ~32 leaves (at 1MB chunk size),
+            // making the efficiency difference between O(log N) and O(N) clear.
+            let content = make_content(32 * 1024 * 1024);
+            let mut buf = large_file_buffer(&content);
+
+            let updates = scan_line_feeds(&mut buf);
+
+            // Insert a small piece of text in one chunk.
+            buf.insert_bytes(1_000_000, b"HELLO".to_vec());
+
+            buf.rebuild_with_pristine_saved_root(&updates);
+
+            let diff = buf.diff_since_saved();
+            assert!(!diff.equal);
+
+            let total_leaves = buf.piece_tree.get_leaves().len();
+            // The diff should visit far fewer nodes than the total tree.
+            // With path-copying, only the path from root to the edited leaf
+            // (and its immediate neighbours) should be visited — roughly
+            // O(log N) nodes, not O(N).
+            assert!(
+                diff.nodes_visited < total_leaves,
+                "diff visited {} nodes but tree has {} leaves — \
+                 Arc::ptr_eq short-circuiting is not working",
+                diff.nodes_visited,
+                total_leaves,
+            );
+        }
+
+        /// Same test but with Unloaded data (the fixup path).
+        #[test]
+        fn test_diff_efficiency_after_rebuild_unloaded() {
+            let content = make_content(32 * 1024 * 1024);
+
+            let tmp = tempfile::NamedTempFile::new().unwrap();
+            std::fs::write(tmp.path(), &content).unwrap();
+            let mut buf = large_file_buffer_unloaded(tmp.path(), content.len());
+
+            let updates = scan_line_feeds(&mut buf);
+
+            buf.insert_bytes(1_000_000, b"HELLO".to_vec());
+
+            buf.rebuild_with_pristine_saved_root(&updates);
+
+            let diff = buf.diff_since_saved();
+            assert!(!diff.equal);
+
+            let total_leaves = buf.piece_tree.get_leaves().len();
+            assert!(
+                diff.nodes_visited < total_leaves,
+                "diff visited {} nodes but tree has {} leaves — \
+                 Arc::ptr_eq short-circuiting is not working (unloaded path)",
+                diff.nodes_visited,
+                total_leaves,
+            );
         }
     }
 }

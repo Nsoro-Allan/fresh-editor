@@ -12,6 +12,10 @@ pub struct PieceTreeDiff {
     pub byte_ranges: Vec<Range<usize>>,
     /// Changed line ranges in the "after" tree (exclusive end). `None` when line counts are unknown.
     pub line_ranges: Option<Vec<Range<usize>>>,
+    /// Number of tree nodes visited during the diff walk.
+    /// When `Arc::ptr_eq` short-circuits effectively, this should be
+    /// proportional to the edited region, not the entire tree.
+    pub nodes_visited: usize,
 }
 
 /// Compute a diff between two piece tree roots.
@@ -33,13 +37,15 @@ pub fn diff_piece_trees(
             equal: true,
             byte_ranges: Vec::new(),
             line_ranges: Some(Vec::new()),
+            nodes_visited: 1,
         };
     }
 
     // Collect leaves only from differing subtrees using structural walk
     let mut before_leaves = Vec::new();
     let mut after_leaves = Vec::new();
-    diff_collect_leaves(before, after, &mut before_leaves, &mut after_leaves);
+    let mut nodes_visited: usize = 0;
+    diff_collect_leaves(before, after, &mut before_leaves, &mut after_leaves, &mut nodes_visited);
 
     let before_leaves = normalize_leaves(before_leaves);
     let after_leaves = normalize_leaves(after_leaves);
@@ -50,6 +56,7 @@ pub fn diff_piece_trees(
             equal: true,
             byte_ranges: Vec::new(),
             line_ranges: Some(Vec::new()),
+            nodes_visited,
         };
     }
 
@@ -70,6 +77,7 @@ pub fn diff_piece_trees(
         equal: false,
         byte_ranges: ranges,
         line_ranges,
+        nodes_visited,
     }
 }
 
@@ -80,7 +88,10 @@ fn diff_collect_leaves(
     after: &Arc<PieceTreeNode>,
     before_out: &mut Vec<LeafData>,
     after_out: &mut Vec<LeafData>,
+    nodes_visited: &mut usize,
 ) {
+    *nodes_visited += 2; // counting both before and after nodes
+
     // Identical subtree - skip entirely
     if Arc::ptr_eq(before, after) {
         return;
@@ -100,22 +111,23 @@ fn diff_collect_leaves(
                 ..
             },
         ) => {
-            diff_collect_leaves(b_left, a_left, before_out, after_out);
-            diff_collect_leaves(b_right, a_right, before_out, after_out);
+            diff_collect_leaves(b_left, a_left, before_out, after_out, nodes_visited);
+            diff_collect_leaves(b_right, a_right, before_out, after_out, nodes_visited);
         }
         // Structure mismatch - fall back to full leaf collection for both subtrees
         _ => {
-            collect_leaves(before, before_out);
-            collect_leaves(after, after_out);
+            collect_leaves(before, before_out, nodes_visited);
+            collect_leaves(after, after_out, nodes_visited);
         }
     }
 }
 
-fn collect_leaves(node: &Arc<PieceTreeNode>, out: &mut Vec<LeafData>) {
+fn collect_leaves(node: &Arc<PieceTreeNode>, out: &mut Vec<LeafData>, nodes_visited: &mut usize) {
+    *nodes_visited += 1;
     match node.as_ref() {
         PieceTreeNode::Internal { left, right, .. } => {
-            collect_leaves(left, out);
-            collect_leaves(right, out);
+            collect_leaves(left, out, nodes_visited);
+            collect_leaves(right, out, nodes_visited);
         }
         PieceTreeNode::Leaf {
             location,
