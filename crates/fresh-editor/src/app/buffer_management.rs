@@ -2286,7 +2286,7 @@ impl Editor {
     fn finish_line_scan_ok(&mut self) {
         let scan = self.line_scan_state.take().unwrap();
         if let Some(state) = self.buffers.get_mut(&scan.buffer_id) {
-            state.buffer.apply_scan_updates(&scan.updates);
+            state.buffer.rebuild_with_pristine_saved_root(&scan.updates);
         }
         self.set_status_message(t!("goto.scan_complete").to_string());
         self.open_goto_line_if_active(scan.buffer_id);

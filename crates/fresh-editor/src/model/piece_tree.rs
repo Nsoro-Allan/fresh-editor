@@ -722,6 +722,15 @@ impl PieceTree {
         }
     }
 
+    /// Build a `PieceTree` from an explicit list of leaves.
+    pub fn from_leaves(leaves: &[LeafData]) -> Self {
+        let total_bytes: usize = leaves.iter().map(|l| l.bytes).sum();
+        PieceTree {
+            root: Self::build_balanced(leaves),
+            total_bytes,
+        }
+    }
+
     /// Build a balanced tree from a list of leaves
     fn build_balanced(leaves: &[LeafData]) -> Arc<PieceTreeNode> {
         if leaves.is_empty() {

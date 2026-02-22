@@ -4576,16 +4576,7 @@ impl Editor {
                 };
                 snapshot.buffers.insert(*buffer_id, buffer_info);
 
-                // Skip diffing in large file mode - too expensive
-                // TODO: Enable when we have an efficient streaming diff algorithm
-                let is_large_file = state.buffer.line_count().is_none();
-                let diff = if is_large_file {
-                    BufferSavedDiff {
-                        equal: !state.buffer.is_modified(),
-                        byte_ranges: vec![],
-                        line_ranges: None,
-                    }
-                } else {
+                let diff = {
                     let diff = state.buffer.diff_since_saved();
                     BufferSavedDiff {
                         equal: diff.equal,

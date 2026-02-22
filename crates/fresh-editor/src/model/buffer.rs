@@ -2453,6 +2453,103 @@ impl TextBuffer {
         self.line_feeds_scanned = true;
     }
 
+    /// After an incremental line-feed scan completes, rebuild the tree so that
+    /// `saved_root` and the current tree share `Arc` pointers for unedited
+    /// subtrees. This makes `diff_since_saved()` O(edited regions) instead of
+    /// O(file size).
+    pub fn rebuild_with_pristine_saved_root(&mut self, scan_updates: &[(usize, usize)]) {
+        let file_size = match self.saved_file_size {
+            Some(s) => s,
+            None => {
+                // Fallback: no saved file size means we can't build a pristine
+                // tree. Just apply updates the old way.
+                self.apply_scan_updates(scan_updates);
+                return;
+            }
+        };
+
+        // --- Walk the current tree to extract deletions and insertions ---
+        let total = self.total_bytes();
+        // Deletions: gaps in Stored coverage (orig_offset, len).
+        let mut deletions: Vec<(usize, usize)> = Vec::new();
+        // Insertions: (post_delete_offset, location, buf_offset, bytes, lf_cnt).
+        // post_delete_offset = cumulative surviving Stored bytes before this point.
+        let mut insertions: Vec<(usize, BufferLocation, usize, usize, Option<usize>)> = Vec::new();
+        let mut orig_cursor: usize = 0;
+        let mut stored_bytes_in_doc: usize = 0;
+
+        for piece in self.piece_tree.iter_pieces_in_range(0, total) {
+            match piece.location {
+                BufferLocation::Stored(_) => {
+                    if piece.buffer_offset > orig_cursor {
+                        deletions.push((orig_cursor, piece.buffer_offset - orig_cursor));
+                    }
+                    orig_cursor = piece.buffer_offset + piece.bytes;
+                    stored_bytes_in_doc += piece.bytes;
+                }
+                BufferLocation::Added(_) => {
+                    insertions.push((
+                        stored_bytes_in_doc,
+                        piece.location,
+                        piece.buffer_offset,
+                        piece.bytes,
+                        piece.line_feed_cnt,
+                    ));
+                }
+            }
+        }
+        // Trailing deletion.
+        if orig_cursor < file_size {
+            deletions.push((orig_cursor, file_size - orig_cursor));
+        }
+
+        // --- Build pristine tree (full original file, pre-split, with lf counts) ---
+        let mut pristine = if file_size > 0 {
+            PieceTree::new(BufferLocation::Stored(0), 0, file_size, None)
+        } else {
+            PieceTree::empty()
+        };
+        pristine.split_leaves_to_chunk_size(LOAD_CHUNK_SIZE);
+        pristine.update_leaf_line_feeds(scan_updates);
+
+        // Snapshot the pristine tree as saved_root.
+        self.saved_root = pristine.root();
+
+        // If no edits, the pristine tree IS the current tree.
+        if deletions.is_empty() && insertions.is_empty() {
+            self.piece_tree = pristine;
+            self.line_feeds_scanned = true;
+            return;
+        }
+
+        // --- Replay edits onto a clone of the pristine tree ---
+        let mut tree = pristine;
+
+        // Apply deletions from HIGH to LOW offset so earlier offsets stay valid.
+        deletions.sort_by(|a, b| b.0.cmp(&a.0));
+        for &(offset, len) in &deletions {
+            tree.delete(offset, len, &self.buffers);
+        }
+
+        // Apply insertions from LOW to HIGH. Each insertion shifts subsequent
+        // offsets by its byte count, tracked via insert_delta.
+        let mut insert_delta: usize = 0;
+        for &(offset, location, buf_offset, bytes, lf_cnt) in &insertions {
+            tree.insert(
+                offset + insert_delta,
+                location,
+                buf_offset,
+                bytes,
+                lf_cnt,
+                &self.buffers,
+            );
+            insert_delta += bytes;
+        }
+
+        self.piece_tree = tree;
+        self.line_feeds_scanned = true;
+    }
+
     /// Resolve the exact byte offset for a given line number (0-indexed).
     ///
     /// Uses the tree's line feed counts to find the piece containing the target line,
@@ -5282,6 +5379,209 @@ mod tests {
             let downcast = error.downcast_ref::<LargeFileEncodingConfirmation>();
             assert!(downcast.is_some());
             assert_eq!(downcast.unwrap().encoding, Encoding::EucKr);
+        }
+    }
+
+    mod rebuild_pristine_saved_root_tests {
+        use super::*;
+        use crate::model::piece_tree::BufferLocation;
+        use std::sync::Arc;
+
+        /// Create a large-file-mode TextBuffer from raw bytes, simulating what
+        /// `load_from_file` does for files above the large-file threshold.
+        fn large_file_buffer(content: &[u8]) -> TextBuffer {
+            let fs: Arc<dyn crate::model::filesystem::FileSystem + Send + Sync> =
+                Arc::new(crate::model::filesystem::StdFileSystem);
+            let bytes = content.len();
+            let buffer = crate::model::piece_tree::StringBuffer::new_loaded(0, content.to_vec(), false);
+            let piece_tree = if bytes > 0 {
+                crate::model::piece_tree::PieceTree::new(BufferLocation::Stored(0), 0, bytes, None)
+            } else {
+                crate::model::piece_tree::PieceTree::empty()
+            };
+            let saved_root = piece_tree.root();
+            TextBuffer {
+                fs,
+                piece_tree,
+                saved_root,
+                buffers: vec![buffer],
+                next_buffer_id: 1,
+                file_path: None,
+                modified: false,
+                recovery_pending: false,
+                large_file: true,
+                line_feeds_scanned: false,
+                is_binary: false,
+                line_ending: LineEnding::LF,
+                original_line_ending: LineEnding::LF,
+                encoding: Encoding::Utf8,
+                original_encoding: Encoding::Utf8,
+                saved_file_size: Some(bytes),
+                version: 0,
+            }
+        }
+
+        /// Simulate prepare_line_scan + scanning: pre-split and compute lf counts.
+        fn scan_line_feeds(buf: &mut TextBuffer) -> Vec<(usize, usize)> {
+            buf.piece_tree.split_leaves_to_chunk_size(LOAD_CHUNK_SIZE);
+            let leaves = buf.piece_tree.get_leaves();
+            let mut updates = Vec::new();
+            for (idx, leaf) in leaves.iter().enumerate() {
+                if leaf.line_feed_cnt.is_some() {
+                    continue;
+                }
+                let count = buf.scan_leaf(leaf).unwrap();
+                updates.push((idx, count));
+            }
+            updates
+        }
+
+        /// Generate a repeating pattern with newlines for testing.
+        fn make_content(size: usize) -> Vec<u8> {
+            let line = b"abcdefghij0123456789ABCDEFGHIJ0123456789abcdefghij0123456789ABCDEFGHIJ\n";
+            let mut out = Vec::with_capacity(size);
+            while out.len() < size {
+                let remaining = size - out.len();
+                let take = remaining.min(line.len());
+                out.extend_from_slice(&line[..take]);
+            }
+            out
+        }
+
+        #[test]
+        fn test_no_edits_arc_ptr_eq() {
+            let content = make_content(2 * 1024 * 1024);
+            let mut buf = large_file_buffer(&content);
+            let updates = scan_line_feeds(&mut buf);
+            buf.rebuild_with_pristine_saved_root(&updates);
+
+            // After rebuild with no edits, roots should be identical (Arc::ptr_eq).
+            assert!(Arc::ptr_eq(&buf.saved_root, &buf.piece_tree.root()));
+            let diff = buf.diff_since_saved();
+            assert!(diff.equal);
+            assert!(buf.line_feeds_scanned);
+            assert_eq!(buf.get_all_text().unwrap(), content);
+        }
+
+        #[test]
+        fn test_single_insertion() {
+            let content = make_content(2 * 1024 * 1024);
+            let mut buf = large_file_buffer(&content);
+            let updates = scan_line_feeds(&mut buf);
+
+            // Insert some text in the middle.
+            let insert_offset = 1_000_000;
+            let insert_text = b"INSERTED_TEXT\n";
+            buf.insert_bytes(insert_offset, insert_text.to_vec());
+
+            buf.rebuild_with_pristine_saved_root(&updates);
+
+            // Content should match the shadow model.
+            let mut expected = content.clone();
+            expected.splice(insert_offset..insert_offset, insert_text.iter().copied());
+            assert_eq!(buf.get_all_text().unwrap(), expected);
+
+            // Diff should NOT be equal.
+            let diff = buf.diff_since_saved();
+            assert!(!diff.equal);
+            assert!(!diff.byte_ranges.is_empty());
+        }
+
+        #[test]
+        fn test_single_deletion() {
+            let content = make_content(2 * 1024 * 1024);
+            let mut buf = large_file_buffer(&content);
+            let updates = scan_line_feeds(&mut buf);
+
+            // Delete a range.
+            let del_start = 500_000;
+            let del_len = 1000;
+            buf.delete_bytes(del_start, del_len);
+
+            buf.rebuild_with_pristine_saved_root(&updates);
+
+            let mut expected = content.clone();
+            expected.drain(del_start..del_start + del_len);
+            assert_eq!(buf.get_all_text().unwrap(), expected);
+
+            let diff = buf.diff_since_saved();
+            assert!(!diff.equal);
+        }
+
+        #[test]
+        fn test_insert_and_delete() {
+            let content = make_content(2 * 1024 * 1024);
+            let mut buf = large_file_buffer(&content);
+            let updates = scan_line_feeds(&mut buf);
+
+            // Delete near the start, insert near the end.
+            let del_start = 100_000;
+            let del_len = 500;
+            buf.delete_bytes(del_start, del_len);
+
+            let insert_offset = 1_500_000; // in the post-delete document
+            let insert_text = b"NEW_CONTENT\n";
+            buf.insert_bytes(insert_offset, insert_text.to_vec());
+
+            buf.rebuild_with_pristine_saved_root(&updates);
+
+            // Build expected content.
+            let mut expected = content.clone();
+            expected.drain(del_start..del_start + del_len);
+            expected.splice(insert_offset..insert_offset, insert_text.iter().copied());
+            assert_eq!(buf.get_all_text().unwrap(), expected);
+
+            let diff = buf.diff_since_saved();
+            assert!(!diff.equal);
+        }
+
+        #[test]
+        fn test_multiple_scattered_edits() {
+            let content = make_content(3 * 1024 * 1024);
+            let mut buf = large_file_buffer(&content);
+            let updates = scan_line_feeds(&mut buf);
+            let mut expected = content.clone();
+
+            // Apply several edits across chunk boundaries, tracking the shadow model.
+            // Edit 1: delete at offset 100k
+            buf.delete_bytes(100_000, 200);
+            expected.drain(100_000..100_200);
+
+            // Edit 2: insert at offset 500k (in current doc, which shifted)
+            buf.insert_bytes(500_000, b"AAAA\n".to_vec());
+            expected.splice(500_000..500_000, b"AAAA\n".iter().copied());
+
+            // Edit 3: delete at offset 2M
+            buf.delete_bytes(2_000_000, 300);
+            expected.drain(2_000_000..2_000_300);
+
+            // Edit 4: insert at offset 1M
+            buf.insert_bytes(1_000_000, b"BBBB\n".to_vec());
+            expected.splice(1_000_000..1_000_000, b"BBBB\n".iter().copied());
+
+            buf.rebuild_with_pristine_saved_root(&updates);
+
+            assert_eq!(buf.get_all_text().unwrap(), expected);
+            let diff = buf.diff_since_saved();
+            assert!(!diff.equal);
+        }
+
+        #[test]
+        fn test_content_preserved_after_rebuild() {
+            // Verify that get_all_text matches before and after rebuild for
+            // a buffer with edits.
+            let content = make_content(2 * 1024 * 1024);
+            let mut buf = large_file_buffer(&content);
+            let updates = scan_line_feeds(&mut buf);
+
+            buf.insert_bytes(0, b"HEADER\n".to_vec());
+            buf.delete_bytes(1_000_000, 500);
+
+            let text_before = buf.get_all_text().unwrap();
+            buf.rebuild_with_pristine_saved_root(&updates);
+            let text_after = buf.get_all_text().unwrap();
+
+            assert_eq!(text_before, text_after);
         }
     }
 }
