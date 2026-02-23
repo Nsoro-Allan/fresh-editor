@@ -72,6 +72,7 @@
         "highlight_context_bytes": 10000,
         "large_file_threshold_bytes": 1048576,
         "estimated_line_length": 80,
+        "read_concurrency": 64,
         "file_tree_poll_interval_ms": 3000
       }
     },
@@ -488,6 +489,14 @@
           "format": "uint",
           "minimum": 0,
           "default": 80,
+          "x-section": "Performance"
+        },
+        "read_concurrency": {
+          "description": "Maximum number of concurrent filesystem read requests.\nUsed during line-feed scanning and other bulk I/O operations.\nHigher values improve throughput, especially for remote filesystems.\nDefault: 64",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0,
+          "default": 64,
           "x-section": "Performance"
         },
         "file_tree_poll_interval_ms": {

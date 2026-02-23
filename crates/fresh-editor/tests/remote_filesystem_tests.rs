@@ -1355,3 +1355,240 @@ fn test_regression_1059_streaming_read_backpressure() {
 
     println!("Regression test #1059 passed: streaming read + save correct under backpressure");
 }
+
+/// Test that the Python agent handles concurrent requests correctly.
+///
+/// Spawns the agent, creates a file with known newline distribution, then
+/// fires many concurrent `count_line_feeds_in_range` requests and verifies
+/// every result matches the expected count. This exercises:
+/// - ThreadPoolExecutor dispatch in the Python agent
+/// - write_lock serialization of stdout (no corrupted JSON lines)
+/// - AgentChannel request-ID multiplexing on the Rust side
+/// - Interleaved responses from different requests
+#[test]
+fn test_concurrent_count_lf_requests() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
+
+    let Some(channel) = rt.block_on(spawn_local_agent()).ok() else {
+        eprintln!("Skipping test: could not spawn agent");
+        return;
+    };
+    let fs = Arc::new(RemoteFileSystem::new(channel, "test@localhost".to_string()));
+
+    // Create a file where we can predict newline counts exactly.
+    // Pattern: 100-byte "lines" — 99 bytes of 'A' followed by '\n'.
+    // This gives us exactly 1 newline per 100-byte chunk.
+    let line_len = 100usize;
+    let num_lines = 10_000; // 1MB file
+    let mut content = Vec::with_capacity(line_len * num_lines);
+    for _ in 0..num_lines {
+        content.extend(std::iter::repeat(b'A').take(line_len - 1));
+        content.push(b'\n');
+    }
+    let file_path = temp_dir.path().join("concurrent_lf.bin");
+    std::fs::write(&file_path, &content).unwrap();
+
+    // Fire 64 concurrent count_lf requests, each covering a different
+    // non-overlapping range of the file.
+    let num_requests = 64usize;
+    let chunk_size = content.len() / num_requests; // ~15625 bytes each
+
+    let results: Vec<std::io::Result<(usize, usize)>> = rt.block_on(async {
+        let mut handles = Vec::with_capacity(num_requests);
+        for i in 0..num_requests {
+            let fs = fs.clone();
+            let path = file_path.clone();
+            let offset = (i * chunk_size) as u64;
+            let len = if i == num_requests - 1 {
+                content.len() - i * chunk_size // last chunk gets remainder
+            } else {
+                chunk_size
+            };
+            handles.push(tokio::task::spawn_blocking(move || {
+                let count = fs.count_line_feeds_in_range(&path, offset, len)?;
+                Ok((i, count))
+            }));
+        }
+
+        let mut results = Vec::with_capacity(handles.len());
+        for handle in handles {
+            results.push(handle.await.unwrap());
+        }
+        results
+    });
+
+    // Verify every request succeeded and returned the correct count
+    let mut total_lf = 0usize;
+    for result in &results {
+        let (idx, count) = result.as_ref().expect("count_lf request should succeed");
+
+        let offset = idx * chunk_size;
+        let len = if *idx == num_requests - 1 {
+            content.len() - idx * chunk_size
+        } else {
+            chunk_size
+        };
+        let expected = content[offset..offset + len]
+            .iter()
+            .filter(|&&b| b == b'\n')
+            .count();
+
+        assert_eq!(
+            *count, expected,
+            "chunk {}: got {} newlines, expected {} (offset={}, len={})",
+            idx, count, expected, offset, len
+        );
+        total_lf += count;
+    }
+
+    assert_eq!(
+        total_lf, num_lines,
+        "total newlines across all chunks should equal num_lines"
+    );
+    println!(
+        "Concurrent count_lf test passed: {} requests, {} total newlines",
+        num_requests, total_lf
+    );
+}
+
+/// Test concurrent mixed operations (count_lf + read_range interleaved).
+///
+/// This verifies that the agent's ThreadPoolExecutor correctly handles
+/// different request types concurrently without corruption.
+#[test]
+fn test_concurrent_mixed_requests() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
+
+    let Some(channel) = rt.block_on(spawn_local_agent()).ok() else {
+        eprintln!("Skipping test: could not spawn agent");
+        return;
+    };
+    let fs = Arc::new(RemoteFileSystem::new(channel, "test@localhost".to_string()));
+
+    // Create a file with predictable content
+    let line_len = 80usize;
+    let num_lines = 5_000;
+    let mut content = Vec::with_capacity(line_len * num_lines);
+    for i in 0..num_lines {
+        let line = format!("{:>079}\n", i); // 79 digits + newline = 80 bytes
+        content.extend_from_slice(line.as_bytes());
+    }
+    let file_path = temp_dir.path().join("mixed_concurrent.bin");
+    std::fs::write(&file_path, &content).unwrap();
+
+    // Fire 32 count_lf requests and 32 read_range requests concurrently
+    let num_each = 32usize;
+    let chunk_size = content.len() / num_each;
+
+    enum Expected {
+        CountLf { idx: usize, expected: usize },
+        ReadRange { idx: usize, expected: Vec<u8> },
+    }
+
+    let (expectations, results): (Vec<Expected>, Vec<std::io::Result<()>>) = rt.block_on(async {
+        let mut handles: Vec<tokio::task::JoinHandle<std::io::Result<(usize, Vec<u8>, usize)>>> =
+            Vec::new();
+        let mut expectations = Vec::new();
+
+        for i in 0..num_each {
+            let offset = (i * chunk_size) as u64;
+            let len = chunk_size;
+
+            // count_lf request
+            {
+                let fs = fs.clone();
+                let path = file_path.clone();
+                let expected_lf = content[i * chunk_size..(i + 1) * chunk_size]
+                    .iter()
+                    .filter(|&&b| b == b'\n')
+                    .count();
+                expectations.push(Expected::CountLf {
+                    idx: i,
+                    expected: expected_lf,
+                });
+                handles.push(tokio::task::spawn_blocking(move || {
+                    let count = fs.count_line_feeds_in_range(&path, offset, len)?;
+                    Ok((i, Vec::new(), count))
+                }));
+            }
+
+            // read_range request
+            {
+                let fs = fs.clone();
+                let path = file_path.clone();
+                let expected_data = content[i * chunk_size..(i + 1) * chunk_size].to_vec();
+                expectations.push(Expected::ReadRange {
+                    idx: i,
+                    expected: expected_data,
+                });
+                handles.push(tokio::task::spawn_blocking(move || {
+                    let data = fs.read_range(&path, offset, len)?;
+                    Ok((i, data, 0))
+                }));
+            }
+        }
+
+        let mut results = Vec::new();
+        let mut handle_results = Vec::new();
+        for handle in handles {
+            handle_results.push(handle.await.unwrap());
+        }
+
+        for (exp, result) in expectations.iter().zip(handle_results.iter()) {
+            match (exp, result) {
+                (Expected::CountLf { idx, expected }, Ok((_i, _data, count))) => {
+                    if count != expected {
+                        results.push(Err(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!(
+                                "count_lf chunk {}: got {}, expected {}",
+                                idx, count, expected
+                            ),
+                        )));
+                    } else {
+                        results.push(Ok(()));
+                    }
+                }
+                (Expected::ReadRange { idx, expected }, Ok((_i, data, _count))) => {
+                    if data != expected {
+                        results.push(Err(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!(
+                                "read_range chunk {}: got {} bytes, expected {} bytes",
+                                idx,
+                                data.len(),
+                                expected.len()
+                            ),
+                        )));
+                    } else {
+                        results.push(Ok(()));
+                    }
+                }
+                (_, Err(e)) => {
+                    results.push(Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("request failed: {}", e),
+                    )));
+                }
+            }
+        }
+
+        (expectations, results)
+    });
+
+    // Check all results
+    for (i, result) in results.iter().enumerate() {
+        result
+            .as_ref()
+            .unwrap_or_else(|e| panic!("request {} failed: {}", i, e));
+    }
+
+    println!(
+        "Mixed concurrent test passed: {} total requests ({} count_lf + {} read_range)",
+        expectations.len(),
+        num_each,
+        num_each
+    );
+}
