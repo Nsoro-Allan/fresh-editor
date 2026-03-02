@@ -1,5 +1,6 @@
 use crate::common::fixtures::TestFixture;
 use crate::common::harness::EditorTestHarness;
+use std::fs;
 
 /// Test command palette trigger and rendering
 #[test]
@@ -138,6 +139,80 @@ fn test_command_palette_execute() {
 
     // Line numbers should now be hidden
     harness.assert_screen_not_contains("1 │");
+}
+
+/// Test Quick Open file mode with path:line:col
+#[test]
+fn test_quick_open_file_path_line_col() {
+    use crossterm::event::{KeyCode, KeyModifiers};
+
+    let mut harness =
+        EditorTestHarness::with_temp_project_and_config(100, 24, Default::default()).unwrap();
+    let project_root = harness.project_dir().unwrap();
+
+    let content = "11111\n22222\nABCDE12345\n44444\n";
+    fs::write(project_root.join("jump.txt"), content).unwrap();
+
+    // Open Quick Open (command mode), then switch to file mode
+    harness
+        .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
+        .unwrap();
+    harness
+        .send_key(KeyCode::Backspace, KeyModifiers::NONE)
+        .unwrap();
+
+    // Type path with line/column suffix and open it
+    harness.type_text("jump.txt:3:5").unwrap();
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+
+    harness.process_async_and_render().unwrap();
+    harness.render().unwrap();
+
+    harness
+        .wait_until(|h| {
+            let screen = h.screen_to_string();
+            screen.contains("Ln 3") && screen.contains("Col 5") && screen.contains("ABCDE12345")
+        })
+        .expect("Cursor should jump to Ln 3, Col 5 after Quick Open");
+}
+
+/// Test Quick Open file mode with path:line (no column)
+#[test]
+fn test_quick_open_file_path_line_only() {
+    use crossterm::event::{KeyCode, KeyModifiers};
+
+    let mut harness =
+        EditorTestHarness::with_temp_project_and_config(100, 24, Default::default()).unwrap();
+    let project_root = harness.project_dir().unwrap();
+
+    let content = "11111\n22222\nABCDE12345\n44444\n";
+    fs::write(project_root.join("jump.txt"), content).unwrap();
+
+    // Open Quick Open (command mode), then switch to file mode
+    harness
+        .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
+        .unwrap();
+    harness
+        .send_key(KeyCode::Backspace, KeyModifiers::NONE)
+        .unwrap();
+
+    // Type path with line-only suffix and open it
+    harness.type_text("jump.txt:3").unwrap();
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+
+    harness.process_async_and_render().unwrap();
+    harness.render().unwrap();
+
+    harness
+        .wait_until(|h| {
+            let screen = h.screen_to_string();
+            screen.contains("Ln 3") && screen.contains("Col 1") && screen.contains("ABCDE12345")
+        })
+        .expect("Cursor should jump to Ln 3, Col 1 after Quick Open");
 }
 
 /// Test command palette fuzzy matching

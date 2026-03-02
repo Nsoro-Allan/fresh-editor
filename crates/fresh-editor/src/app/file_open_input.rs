@@ -4,6 +4,7 @@
 //! browser popup when the Open File or Switch Project prompt is active.
 
 use super::file_open::{FileOpenSection, SortMode};
+use super::prompt_actions::parse_path_line_col;
 use super::Editor;
 use crate::input::keybindings::Action;
 use crate::primitives::path_utils::expand_tilde;
@@ -170,7 +171,7 @@ impl Editor {
             .as_ref()
             .map(|p| p.input.clone())
             .unwrap_or_default();
-        let (path_input, line, column) = Self::parse_path_line_col(&prompt_input);
+        let (path_input, line, column) = parse_path_line_col(&prompt_input);
 
         // Get the current directory from file open state
         let current_dir = self
