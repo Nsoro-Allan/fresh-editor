@@ -63,6 +63,11 @@ impl Editor {
             view_state.viewport.clear_skip_ensure_visible();
         }
 
+        // Dismiss theme info popup on any key press
+        if self.theme_info_popup.is_some() {
+            self.theme_info_popup = None;
+        }
+
         // Determine the current context first
         let mut context = self.get_key_context();
 
@@ -2289,7 +2294,7 @@ impl Editor {
         Some(position)
     }
 
-    fn adjust_content_rect_for_compose(
+    pub(super) fn adjust_content_rect_for_compose(
         content_rect: ratatui::layout::Rect,
         compose_width: Option<u16>,
     ) -> ratatui::layout::Rect {

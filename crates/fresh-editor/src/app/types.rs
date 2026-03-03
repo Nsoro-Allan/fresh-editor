@@ -587,6 +587,35 @@ impl TabContextMenu {
     }
 }
 
+/// Information about which theme key(s) style a specific screen position.
+/// Used by the Ctrl+Right-Click theme inspector popup.
+#[derive(Debug, Clone)]
+pub struct ThemeKeyInfo {
+    /// The foreground theme key path (e.g., "syntax.keyword", "editor.fg")
+    pub fg_key: Option<String>,
+    /// The background theme key path (e.g., "editor.bg", "editor.selection_bg")
+    pub bg_key: Option<String>,
+    /// Human-readable description of the UI region
+    pub region: String,
+    /// The actual foreground color value currently applied
+    pub fg_color: Option<ratatui::style::Color>,
+    /// The actual background color value currently applied
+    pub bg_color: Option<ratatui::style::Color>,
+    /// For syntax highlights: the HighlightCategory display name
+    pub syntax_category: Option<String>,
+}
+
+/// State for the theme inspector popup (Ctrl+Right-Click)
+#[derive(Debug, Clone)]
+pub struct ThemeInfoPopup {
+    /// Screen position where popup appears (x, y)
+    pub position: (u16, u16),
+    /// Resolved theme key information
+    pub info: ThemeKeyInfo,
+    /// Whether the "Open in Theme Editor" button is highlighted (mouse hover)
+    pub button_highlighted: bool,
+}
+
 /// Drop zone for tab drag-and-drop
 /// Indicates where a dragged tab will be placed when released
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

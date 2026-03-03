@@ -114,6 +114,60 @@ impl Editor {
             return result;
         }
 
+        // Dismiss theme info popup on any left-click; check if click is on the button first
+        if self.theme_info_popup.is_some() {
+            if let MouseEventKind::Down(MouseButton::Left) = mouse_event.kind {
+                if let Some((popup_rect, button_row_offset)) = self.theme_info_popup_rect() {
+                    let popup_x = popup_rect.x;
+                    let popup_y = popup_rect.y;
+                    let popup_w = popup_rect.width;
+                    let popup_h = popup_rect.height;
+                    let in_popup = col >= popup_x
+                        && col < popup_x + popup_w
+                        && row >= popup_y
+                        && row < popup_y + popup_h;
+
+                    if in_popup {
+                        // Check if click is on the button row (last content row before border)
+                        let actual_button_row = popup_y + button_row_offset;
+                        if row == actual_button_row {
+                            let fg_key = self
+                                .theme_info_popup
+                                .as_ref()
+                                .and_then(|p| p.info.fg_key.clone());
+                            self.theme_info_popup = None;
+                            if let Some(key) = fg_key {
+                                // Open theme editor at this key
+                                #[cfg(feature = "plugins")]
+                                {
+                                    let _ = self
+                                        .plugin_manager
+                                        .execute_action_async("open_theme_editor");
+                                    tracing::debug!(
+                                        "Theme inspect: opening theme editor at key '{}'",
+                                        key
+                                    );
+                                }
+                                #[cfg(not(feature = "plugins"))]
+                                {
+                                    let _ = key;
+                                    self.set_status_message(
+                                        "Theme editor requires plugins feature".to_string(),
+                                    );
+                                }
+                            }
+                            return Ok(true);
+                        }
+                        // Click inside popup but not button - ignore
+                        return Ok(true);
+                    }
+                }
+                // Click outside popup - dismiss
+                self.theme_info_popup = None;
+                needs_render = true;
+            }
+        }
+
         match mouse_event.kind {
             MouseEventKind::Down(MouseButton::Left) => {
                 if is_double_click || is_triple_click {
@@ -224,6 +278,20 @@ impl Editor {
                 let hover_changed = self.update_hover_target(col, row);
                 needs_render = needs_render || hover_changed;
 
+                // Update theme info popup button highlight on hover
+                if let Some((popup_rect, button_row_offset)) = self.theme_info_popup_rect() {
+                    let button_row = popup_rect.y + button_row_offset;
+                    let new_highlighted = row == button_row
+                        && col >= popup_rect.x
+                        && col < popup_rect.x + popup_rect.width;
+                    if let Some(ref mut popup) = self.theme_info_popup {
+                        if popup.button_highlighted != new_highlighted {
+                            popup.button_highlighted = new_highlighted;
+                            needs_render = true;
+                        }
+                    }
+                }
+
                 // Track LSP hover state for mouse-triggered hover popups
                 self.update_lsp_hover_state(col, row);
             }
@@ -307,8 +375,16 @@ impl Editor {
                 needs_render = true;
             }
             MouseEventKind::Down(MouseButton::Right) => {
-                // Handle right-click for context menus
-                self.handle_right_click(col, row)?;
+                if mouse_event
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                {
+                    // Ctrl+Right-Click → theme info popup
+                    self.show_theme_info_popup(col, row)?;
+                } else {
+                    // Normal right-click → tab context menu
+                    self.handle_right_click(col, row)?;
+                }
                 needs_render = true;
             }
             _ => {

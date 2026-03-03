@@ -34,6 +34,7 @@ mod tab_drag;
 mod terminal;
 mod terminal_input;
 mod terminal_mouse;
+mod theme_inspect;
 mod toggle_actions;
 pub mod types;
 mod undo_actions;
@@ -558,6 +559,9 @@ pub struct Editor {
 
     /// Tab context menu state (right-click on tabs)
     tab_context_menu: Option<TabContextMenu>,
+
+    /// Theme inspector popup state (Ctrl+Right-Click)
+    theme_info_popup: Option<types::ThemeInfoPopup>,
 
     /// Cached layout areas from last render (for mouse hit testing)
     pub(crate) cached_layout: CachedLayout,
@@ -1380,6 +1384,7 @@ impl Editor {
             lsp_status: String::new(),
             mouse_state: MouseState::default(),
             tab_context_menu: None,
+            theme_info_popup: None,
             cached_layout: CachedLayout::default(),
             command_registry,
             quick_open_registry,

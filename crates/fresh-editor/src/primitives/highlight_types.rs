@@ -32,6 +32,41 @@ pub struct HighlightSpan {
     pub range: Range<usize>,
     /// Color for this span
     pub color: Color,
+    /// The highlight category that produced this span (for theme inspection)
+    pub category: Option<HighlightCategory>,
+}
+
+impl HighlightCategory {
+    /// Get the theme key path for this category (e.g., "syntax.keyword").
+    pub fn theme_key(&self) -> &'static str {
+        match self {
+            Self::Keyword => "syntax.keyword",
+            Self::String => "syntax.string",
+            Self::Comment => "syntax.comment",
+            Self::Function => "syntax.function",
+            Self::Type => "syntax.type",
+            Self::Variable | Self::Property => "syntax.variable",
+            Self::Constant | Self::Number | Self::Attribute => "syntax.constant",
+            Self::Operator => "syntax.operator",
+        }
+    }
+
+    /// Get a human-readable display name for this category.
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Attribute => "Attribute",
+            Self::Comment => "Comment",
+            Self::Constant => "Constant",
+            Self::Function => "Function",
+            Self::Keyword => "Keyword",
+            Self::Number => "Number",
+            Self::Operator => "Operator",
+            Self::Property => "Property",
+            Self::String => "String",
+            Self::Type => "Type",
+            Self::Variable => "Variable",
+        }
+    }
 }
 
 /// Get the color for a highlight category from the theme.

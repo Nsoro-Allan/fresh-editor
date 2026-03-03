@@ -46,6 +46,8 @@ pub struct HighlightSpan {
     pub range: Range<usize>,
     /// Color for this span
     pub color: Color,
+    /// The highlight category that produced this span (for theme inspection)
+    pub category: Option<HighlightCategory>,
 }
 
 /// Internal span used for caching (stores category instead of color)
@@ -124,6 +126,7 @@ impl Highlighter {
                     .map(|span| HighlightSpan {
                         range: span.range.clone(),
                         color: highlight_color(span.category, theme),
+                        category: Some(span.category),
                     })
                     .collect();
             }
@@ -206,9 +209,13 @@ impl Highlighter {
         cached_spans
             .into_iter()
             .filter(|span| span.range.start < viewport_end && span.range.end > viewport_start)
-            .map(|span| HighlightSpan {
-                range: span.range,
-                color: highlight_color(span.category, theme),
+            .map(|span| {
+                let cat = span.category;
+                HighlightSpan {
+                    range: span.range,
+                    color: highlight_color(cat, theme),
+                    category: Some(cat),
+                }
             })
             .collect()
     }

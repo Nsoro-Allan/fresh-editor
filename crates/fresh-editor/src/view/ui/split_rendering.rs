@@ -3929,6 +3929,7 @@ impl SplitRenderer {
                     semantic_token_spans.push(crate::primitives::highlighter::HighlightSpan {
                         range,
                         color: *color,
+                        category: None,
                     });
                 }
                 continue;

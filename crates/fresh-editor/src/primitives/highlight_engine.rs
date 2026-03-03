@@ -294,6 +294,7 @@ impl TextMateEngine {
                     .map(|span| HighlightSpan {
                         range: span.range.clone(),
                         color: highlight_color(span.category, theme),
+                        category: Some(span.category),
                     })
                     .collect();
             }
@@ -437,9 +438,13 @@ impl TextMateEngine {
         spans
             .into_iter()
             .filter(|span| span.range.start < viewport_end && span.range.end > viewport_start)
-            .map(|span| HighlightSpan {
-                range: span.range,
-                color: highlight_color(span.category, theme),
+            .map(|span| {
+                let cat = span.category;
+                HighlightSpan {
+                    range: span.range,
+                    color: highlight_color(cat, theme),
+                    category: Some(cat),
+                }
             })
             .collect()
     }
@@ -856,6 +861,7 @@ pub fn highlight_string(
                         spans.push(HighlightSpan {
                             range: byte_start..byte_end,
                             color: highlight_color(category, theme),
+                            category: Some(category),
                         });
                     }
                 }
@@ -875,6 +881,7 @@ pub fn highlight_string(
                     spans.push(HighlightSpan {
                         range: byte_start..byte_end,
                         color: highlight_color(category, theme),
+                        category: Some(category),
                     });
                 }
             }

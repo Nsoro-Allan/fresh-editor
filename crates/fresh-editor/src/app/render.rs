@@ -986,6 +986,9 @@ impl Editor {
             self.render_tab_context_menu(frame, menu);
         }
 
+        // Render theme info popup (Ctrl+Right-Click)
+        self.render_theme_info_popup(frame);
+
         // Render tab drag drop zone overlay if dragging a tab
         if let Some(ref drag_state) = self.mouse_state.dragging_tab {
             if drag_state.is_dragging() {

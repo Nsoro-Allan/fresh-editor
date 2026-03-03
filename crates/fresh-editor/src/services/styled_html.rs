@@ -158,6 +158,7 @@ mod tests {
         let spans = vec![HighlightSpan {
             range: Range { start: 0, end: 2 },
             color: Color::Blue,
+            category: None,
         }];
         let theme = Theme::load_builtin(theme::THEME_DARK).unwrap();
 
