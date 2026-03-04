@@ -143,6 +143,23 @@ impl BufferViewState {
             folds: FoldManager::new(),
         }
     }
+
+    /// Apply editor config defaults for display settings.
+    ///
+    /// Sets `show_line_numbers`, `line_wrap`, and `rulers` from the given
+    /// config values. Call this after creating a new `BufferViewState` (via
+    /// `new()` or `ensure_buffer_state()`) to ensure the view respects the
+    /// user's settings.
+    pub fn apply_config_defaults(
+        &mut self,
+        line_numbers: bool,
+        line_wrap: bool,
+        rulers: Vec<usize>,
+    ) {
+        self.show_line_numbers = line_numbers;
+        self.viewport.line_wrap_enabled = line_wrap;
+        self.rulers = rulers;
+    }
 }
 
 impl Clone for BufferViewState {

@@ -331,9 +331,11 @@ impl Editor {
             view_state.add_buffer(buffer_id);
             // Initialize per-buffer view state for the new buffer with config defaults
             let buf_state = view_state.ensure_buffer_state(buffer_id);
-            buf_state.show_line_numbers = self.config.editor.line_numbers;
-            buf_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            buf_state.rulers = self.config.editor.rulers.clone();
+            buf_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
         }
 
         // Restore global file state (scroll/cursor position) if available
@@ -430,8 +432,11 @@ impl Editor {
         if let Some(view_state) = self.split_view_states.get_mut(&target_split) {
             view_state.add_buffer(buffer_id);
             let buf_state = view_state.ensure_buffer_state(buffer_id);
-            buf_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            buf_state.rulers = self.config.editor.rulers.clone();
+            buf_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
         }
 
         self.set_active_buffer(buffer_id);
@@ -526,9 +531,11 @@ impl Editor {
         if let Some(view_state) = self.split_view_states.get_mut(&target_split) {
             view_state.add_buffer(buffer_id);
             let buf_state = view_state.ensure_buffer_state(buffer_id);
-            buf_state.show_line_numbers = self.config.editor.line_numbers;
-            buf_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            buf_state.rulers = self.config.editor.rulers.clone();
+            buf_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
         }
 
         self.set_active_buffer(buffer_id);
@@ -659,9 +666,11 @@ impl Editor {
         if let Some(view_state) = self.split_view_states.get_mut(&target_split) {
             view_state.add_buffer(buffer_id);
             let buf_state = view_state.ensure_buffer_state(buffer_id);
-            buf_state.show_line_numbers = self.config.editor.line_numbers;
-            buf_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            buf_state.rulers = self.config.editor.rulers.clone();
+            buf_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
         }
 
         self.set_active_buffer(buffer_id);
@@ -988,9 +997,11 @@ impl Editor {
         // the new BufferViewState with defaults (show_line_numbers=true).
         let active_split = self.split_manager.active_split();
         if let Some(view_state) = self.split_view_states.get_mut(&active_split) {
-            view_state.show_line_numbers = self.config.editor.line_numbers;
-            view_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            view_state.rulers = self.config.editor.rulers.clone();
+            view_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
         }
 
         self.status_message = Some(t!("buffer.new").to_string());
@@ -1088,8 +1099,11 @@ impl Editor {
         if let Some(view_state) = self.split_view_states.get_mut(&active_split) {
             view_state.add_buffer(buffer_id);
             let buf_state = view_state.ensure_buffer_state(buffer_id);
-            buf_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            buf_state.rulers = self.config.editor.rulers.clone();
+            buf_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
         }
 
         self.set_active_buffer(buffer_id);
@@ -1260,15 +1274,20 @@ impl Editor {
         if let Some(view_state) = self.split_view_states.get_mut(&active_split) {
             view_state.add_buffer(buffer_id);
             let buf_state = view_state.ensure_buffer_state(buffer_id);
-            buf_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            buf_state.rulers = self.config.editor.rulers.clone();
+            buf_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
         } else {
             // Create view state if it doesn't exist
             let mut view_state =
                 SplitViewState::with_buffer(self.terminal_width, self.terminal_height, buffer_id);
-            view_state.viewport.line_wrap_enabled = self.config.editor.line_wrap;
-            view_state.rulers = self.config.editor.rulers.clone();
-            view_state.show_line_numbers = self.config.editor.line_numbers;
+            view_state.apply_config_defaults(
+                self.config.editor.line_numbers,
+                self.config.editor.line_wrap,
+                self.config.editor.rulers.clone(),
+            );
             self.split_view_states.insert(active_split, view_state);
         }
 

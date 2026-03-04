@@ -1136,9 +1136,11 @@ impl Editor {
         let mut split_view_states = HashMap::new();
         let initial_split_id = split_manager.active_split();
         let mut initial_view_state = SplitViewState::with_buffer(width, height, buffer_id);
-        initial_view_state.viewport.line_wrap_enabled = config.editor.line_wrap;
-        initial_view_state.rulers = config.editor.rulers.clone();
-        initial_view_state.show_line_numbers = config.editor.line_numbers;
+        initial_view_state.apply_config_defaults(
+            config.editor.line_numbers,
+            config.editor.line_wrap,
+            config.editor.rulers.clone(),
+        );
         split_view_states.insert(initial_split_id, initial_view_state);
 
         // Initialize filesystem manager for file explorer
@@ -5807,10 +5809,11 @@ impl Editor {
                             self.terminal_height,
                             buffer_id,
                         );
-                        view_state.viewport.line_wrap_enabled =
-                            line_wrap.unwrap_or(self.config.editor.line_wrap);
-                        view_state.rulers = self.config.editor.rulers.clone();
-                        view_state.show_line_numbers = self.config.editor.line_numbers;
+                        view_state.apply_config_defaults(
+                            self.config.editor.line_numbers,
+                            line_wrap.unwrap_or(self.config.editor.line_wrap),
+                            self.config.editor.rulers.clone(),
+                        );
                         self.split_view_states.insert(new_split_id, view_state);
 
                         // Focus the new split (the diagnostics panel)
@@ -6299,9 +6302,11 @@ impl Editor {
                                         self.terminal_height,
                                         buffer_id,
                                     );
-                                    view_state.viewport.line_wrap_enabled = false;
-                                    view_state.rulers = self.config.editor.rulers.clone();
-                                    view_state.show_line_numbers = self.config.editor.line_numbers;
+                                    view_state.apply_config_defaults(
+                                        self.config.editor.line_numbers,
+                                        false,
+                                        self.config.editor.rulers.clone(),
+                                    );
                                     self.split_view_states.insert(new_split_id, view_state);
 
                                     if focus.unwrap_or(true) {
