@@ -1593,8 +1593,9 @@ pub enum PluginCommand {
     },
 
     /// Reload the theme registry from disk
-    /// Call this after installing a theme package or saving a new theme
-    ReloadThemes,
+    /// Call this after installing a theme package or saving a new theme.
+    /// If `apply_theme` is set, apply that theme immediately after reloading.
+    ReloadThemes { apply_theme: Option<String> },
 
     /// Register a TextMate grammar file for a language
     /// The grammar will be added to pending_grammars until ReloadGrammars is called

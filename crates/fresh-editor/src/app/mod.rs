@@ -5284,8 +5284,11 @@ impl Editor {
             PluginCommand::ReloadConfig => {
                 self.reload_config();
             }
-            PluginCommand::ReloadThemes => {
+            PluginCommand::ReloadThemes { apply_theme } => {
                 self.reload_themes();
+                if let Some(theme_name) = apply_theme {
+                    self.apply_theme(&theme_name);
+                }
             }
             PluginCommand::RegisterGrammar {
                 language,

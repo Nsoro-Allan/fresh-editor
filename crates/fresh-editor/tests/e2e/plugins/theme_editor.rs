@@ -2670,3 +2670,186 @@ fn test_inspect_theme_at_cursor_multiple_rounds() {
         screen
     );
 }
+
+/// Test that saving a built-in theme as a new name produces a complete, valid theme file.
+/// Reproduces a bug where the saved file was incomplete (only the edited field + name),
+/// causing it to fail ThemeFile deserialization and not appear in Select Theme.
+#[test]
+fn test_save_builtin_theme_produces_valid_file() {
+    init_tracing_from_env();
+
+    // Create isolated directory context so we control the themes directory
+    let context_temp = tempfile::TempDir::new().unwrap();
+    let dir_context = DirectoryContext::for_testing(context_temp.path());
+    fs::create_dir_all(dir_context.themes_dir()).unwrap();
+
+    // Create project directory with plugins
+    let project_temp = tempfile::TempDir::new().unwrap();
+    let project_root = project_temp.path().join("project_root");
+    fs::create_dir(&project_root).unwrap();
+
+    let plugins_dir = project_root.join("plugins");
+    fs::create_dir(&plugins_dir).unwrap();
+    copy_plugin(&plugins_dir, "theme_editor");
+
+    let test_file = project_root.join("test.txt");
+    fs::write(&test_file, "Hello world\n").unwrap();
+
+    let mut harness = EditorTestHarness::with_shared_dir_context(
+        120,
+        40,
+        Default::default(),
+        project_root.clone(),
+        dir_context.clone(),
+    )
+    .unwrap();
+
+    harness.open_file(&test_file).unwrap();
+    harness.render().unwrap();
+
+    // Open theme editor via command palette
+    harness
+        .send_key(KeyCode::Char('p'), KeyModifiers::CONTROL)
+        .unwrap();
+    harness.render().unwrap();
+    harness.type_text("Edit Theme").unwrap();
+    harness.render().unwrap();
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+    harness.render().unwrap();
+
+    // Wait for theme selection prompt
+    harness
+        .wait_until(|h| h.screen_to_string().contains("Select theme to edit"))
+        .unwrap();
+
+    // Select the "light" builtin theme
+    harness.type_text("light").unwrap();
+    harness.render().unwrap();
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+    harness.render().unwrap();
+
+    // Wait for theme editor to load
+    harness
+        .wait_until(|h| {
+            let screen = h.screen_to_string();
+            screen.contains("Theme Editor") || screen.contains("*Theme Editor*")
+        })
+        .unwrap();
+
+    // Navigate to a color field and edit it (press Enter on the first field)
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+    harness.render().unwrap();
+
+    // Wait for color input prompt (should show a # hex prefix)
+    harness
+        .wait_until(|h| h.screen_to_string().contains("#"))
+        .unwrap();
+
+    // Clear input and type a new color
+    harness
+        .send_key(KeyCode::Char('a'), KeyModifiers::CONTROL)
+        .unwrap();
+    harness.type_text("#FF0000").unwrap();
+    harness.render().unwrap();
+
+    // Confirm the color edit
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+    harness.render().unwrap();
+
+    // Wait for theme editor to redisplay
+    harness
+        .wait_until(|h| h.screen_to_string().contains("Theme Editor"))
+        .unwrap();
+
+    // Save with Ctrl+S — since it's a builtin theme, this triggers Save As
+    harness
+        .send_key(KeyCode::Char('s'), KeyModifiers::CONTROL)
+        .unwrap();
+    harness.render().unwrap();
+
+    // Wait for save-as prompt
+    harness
+        .wait_until(|h| {
+            let screen = h.screen_to_string();
+            screen.contains("Save") || screen.contains("name")
+        })
+        .unwrap();
+
+    // Type a new name (prompt starts empty)
+    harness.render().unwrap();
+    harness.type_text("light-custom").unwrap();
+    harness.render().unwrap();
+
+    // Confirm save
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+    harness.render().unwrap();
+
+    // Wait for save confirmation
+    harness
+        .wait_until(|h| {
+            let screen = h.screen_to_string();
+            screen.contains("saved") || screen.contains("Saved") || screen.contains("applied")
+        })
+        .unwrap();
+
+    // Now verify the saved file is a valid, complete theme
+    let saved_path = dir_context.themes_dir().join("light-custom.json");
+    assert!(
+        saved_path.exists(),
+        "Saved theme file should exist at {:?}.\nFiles in themes dir: {:?}",
+        saved_path,
+        fs::read_dir(dir_context.themes_dir())
+            .map(|entries| entries
+                .filter_map(|e| e.ok())
+                .map(|e| e.file_name())
+                .collect::<Vec<_>>())
+            .unwrap_or_default()
+    );
+
+    let content = fs::read_to_string(&saved_path).unwrap();
+
+    // The file must deserialize as a valid ThemeFile
+    let theme_file: Result<fresh::view::theme::ThemeFile, _> = serde_json::from_str(&content);
+    assert!(
+        theme_file.is_ok(),
+        "Saved theme must be a valid ThemeFile. Got error: {:?}\nFile content ({} bytes):\n{}",
+        theme_file.err(),
+        content.len(),
+        content
+    );
+
+    let theme = theme_file.unwrap();
+    assert_eq!(theme.name, "light-custom");
+
+    // The file must contain all required sections — not just the edited field
+    let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
+    for section in &["editor", "ui", "search", "diagnostic", "syntax"] {
+        assert!(
+            parsed.get(section).is_some(),
+            "Saved theme is missing required section '{}'. File content:\n{}",
+            section,
+            content
+        );
+    }
+
+    // The editor section should have more than just the one edited field
+    let editor_obj = parsed.get("editor").unwrap().as_object().unwrap();
+    assert!(
+        editor_obj.len() > 1,
+        "Editor section should contain all original fields, not just the edited one. \
+         Got {} fields: {:?}\nFile content:\n{}",
+        editor_obj.len(),
+        editor_obj.keys().collect::<Vec<_>>(),
+        content
+    );
+}

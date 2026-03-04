@@ -522,19 +522,41 @@ async function loadThemeFile(name: string): Promise<Record<string, unknown> | nu
 }
 
 /**
- * Load a user theme file
+ * Load a user theme file — checks top-level themes dir, then package directories
  */
 async function loadUserThemeFile(name: string): Promise<{ data: Record<string, unknown>; path: string } | null> {
   const userThemesDir = getUserThemesDir();
-  const themePath = editor.pathJoin(userThemesDir, `${name}.json`);
 
+  // First check top-level themes directory
+  const themePath = editor.pathJoin(userThemesDir, `${name}.json`);
   try {
     const content = await editor.readFile(themePath);
     return { data: JSON.parse(content), path: themePath };
   } catch {
-    editor.debug(`Failed to load user theme: ${name}`);
-    return null;
+    // Not found at top level — continue searching
   }
+
+  // Search package directories: themes/packages/*/
+  const packagesDir = editor.pathJoin(userThemesDir, "packages");
+  try {
+    const pkgEntries = editor.readDir(packagesDir);
+    for (const pkg of pkgEntries) {
+      if (!pkg.is_file) {
+        const pkgPath = editor.pathJoin(packagesDir, pkg.name, `${name}.json`);
+        try {
+          const content = await editor.readFile(pkgPath);
+          return { data: JSON.parse(content), path: pkgPath };
+        } catch {
+          // Not in this package, continue
+        }
+      }
+    }
+  } catch {
+    // No packages directory
+  }
+
+  editor.debug(`Failed to load user theme: ${name}`);
+  return null;
 }
 
 /**
@@ -1247,16 +1269,11 @@ globalThis.onThemeSelectInitialPromptConfirmed = async function(args: {
       state.isBuiltin = true;
       state.hasChanges = false;
     } else {
-      // Fallback to default theme if load failed
-      state.themeData = createDefaultTheme();
-      state.originalThemeData = deepClone(state.themeData);
-      state.themeName = themeName;
-      state.themePath = null;
-      state.isBuiltin = true;
-      state.hasChanges = false;
+      editor.setStatus(`Failed to load builtin theme '${themeName}'`);
+      return true;
     }
   } else {
-    // Load user theme
+    // Load user theme (searches top-level and package directories)
     const result = await loadUserThemeFile(themeName);
     if (result) {
       state.themeData = deepClone(result.data);
@@ -1266,13 +1283,8 @@ globalThis.onThemeSelectInitialPromptConfirmed = async function(args: {
       state.isBuiltin = false;
       state.hasChanges = false;
     } else {
-      // Fallback to default theme if load failed
-      state.themeData = createDefaultTheme();
-      state.originalThemeData = deepClone(state.themeData);
-      state.themeName = themeName;
-      state.themePath = null;
-      state.isBuiltin = false;
-      state.hasChanges = false;
+      editor.setStatus(`Failed to load theme '${themeName}'`);
+      return true;
     }
   }
 
@@ -1321,8 +1333,24 @@ async function saveTheme(name?: string, restorePath?: string | null): Promise<bo
   const themePath = editor.pathJoin(userThemesDir, `${themeName}.json`);
 
   try {
-    state.themeData.name = themeName;
-    const content = JSON.stringify(state.themeData, null, 2);
+    // Build a complete theme object from all known fields.
+    // This ensures we always write every field, even if state.themeData
+    // is missing some (e.g. package theme that failed to load fully).
+    const completeTheme: Record<string, unknown> = { name: themeName };
+    const sections = getThemeSections();
+    for (const section of sections) {
+      const sectionData: Record<string, unknown> = {};
+      for (const field of section.fields) {
+        const path = `${section.name}.${field.key}`;
+        const value = getNestedValue(state.themeData, path);
+        if (value !== undefined) {
+          sectionData[field.key] = value;
+        }
+      }
+      completeTheme[section.name] = sectionData;
+    }
+
+    const content = JSON.stringify(completeTheme, null, 2);
     await editor.writeFile(themePath, content);
 
     state.themePath = themePath;
@@ -1343,9 +1371,8 @@ async function saveTheme(name?: string, restorePath?: string | null): Promise<bo
       moveCursorToField(restorePath);
     }
 
-    // Reload themes so the new/updated theme is available, then apply it
-    editor.reloadThemes();
-    editor.applyTheme(themeName);
+    // Reload themes and apply the new/updated theme atomically
+    editor.reloadAndApplyTheme(themeName);
     editor.setStatus(editor.t("status.saved_and_applied", { name: themeName }));
 
     if (state.closeAfterSave) {
@@ -1509,6 +1536,9 @@ globalThis.onThemeInspectKey = async function(data: {
       state.themePath = null;
       state.isBuiltin = true;
       state.hasChanges = false;
+    } else {
+      editor.setStatus(`Failed to load builtin theme '${data.theme_name}'`);
+      return;
     }
   } else {
     const result = await loadUserThemeFile(data.theme_name);
@@ -1519,6 +1549,9 @@ globalThis.onThemeInspectKey = async function(data: {
       state.themePath = result.path;
       state.isBuiltin = false;
       state.hasChanges = false;
+    } else {
+      editor.setStatus(`Failed to load user theme '${data.theme_name}'`);
+      return;
     }
   }
 

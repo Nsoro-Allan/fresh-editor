@@ -899,6 +899,10 @@ interface EditorAPI {
 	*/
 	reloadThemes(): void;
 	/**
+	* Reload theme registry from disk and apply a theme atomically
+	*/
+	reloadAndApplyTheme(themeName: string): void;
+	/**
 	* Register a TextMate grammar file for a language
 	* The grammar will be pending until reload_grammars() is called
 	*/

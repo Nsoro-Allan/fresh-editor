@@ -770,6 +770,7 @@ mod tests {
             "getUserConfig",
             "reloadConfig",
             "reloadThemes",
+            "reloadAndApplyTheme",
             "registerGrammar",
             "registerLanguageConfig",
             "registerLspServer",

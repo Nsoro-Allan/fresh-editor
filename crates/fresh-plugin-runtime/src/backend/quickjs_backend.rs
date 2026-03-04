@@ -1334,7 +1334,16 @@ impl JsEditorApi {
     /// Reload theme registry from disk
     /// Call this after installing theme packages or saving new themes
     pub fn reload_themes(&self) {
-        let _ = self.command_sender.send(PluginCommand::ReloadThemes);
+        let _ = self
+            .command_sender
+            .send(PluginCommand::ReloadThemes { apply_theme: None });
+    }
+
+    /// Reload theme registry and apply a theme atomically
+    pub fn reload_and_apply_theme(&self, theme_name: String) {
+        let _ = self.command_sender.send(PluginCommand::ReloadThemes {
+            apply_theme: Some(theme_name),
+        });
     }
 
     /// Register a TextMate grammar file for a language
