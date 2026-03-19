@@ -194,10 +194,12 @@ tiny_http = "0.12"  # Lightweight HTTP server for testing release checker
 unicode-segmentation = "1.12"  # For grapheme cluster testing
 
 [target.'cfg(windows)'.dependencies]
+fresh-winterm.workspace = true
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_System_Threading",
     "Win32_System_Console",
+    "Win32_System_LibraryLoader",
     "Win32_Storage_FileSystem",
     "Win32_Security",
 ] }

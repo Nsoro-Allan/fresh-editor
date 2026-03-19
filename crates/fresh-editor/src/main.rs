@@ -571,7 +571,7 @@ fn start_stdin_streaming() -> AnyhowResult<StdinStreamState> {
     use std::io::{Read, Write};
     use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
     use windows_sys::Win32::Foundation::{
-        CloseHandle, DuplicateHandle, DUPLICATE_SAME_ACCESS, HANDLE, INVALID_HANDLE_VALUE,
+        DuplicateHandle, DUPLICATE_SAME_ACCESS, HANDLE, INVALID_HANDLE_VALUE,
     };
     use windows_sys::Win32::System::Console::GetStdHandle;
     use windows_sys::Win32::System::Console::STD_INPUT_HANDLE;
@@ -579,13 +579,13 @@ fn start_stdin_streaming() -> AnyhowResult<StdinStreamState> {
 
     // Get the current stdin handle (which is a pipe)
     let stdin_handle = unsafe { GetStdHandle(STD_INPUT_HANDLE) };
-    if stdin_handle == INVALID_HANDLE_VALUE || stdin_handle == 0 as HANDLE {
+    if stdin_handle == INVALID_HANDLE_VALUE || stdin_handle.is_null() {
         anyhow::bail!("Failed to get stdin handle");
     }
 
     // Duplicate the handle so we can read from it in a background thread
     // while we replace stdin with CONIN$ for keyboard input
-    let mut duplicated_handle: HANDLE = 0 as HANDLE;
+    let mut duplicated_handle: HANDLE = std::ptr::null_mut();
     let current_process = unsafe { GetCurrentProcess() };
     let success = unsafe {
         DuplicateHandle(
@@ -2549,6 +2549,10 @@ fn run_attach(session_name: Option<&str>, files: &[String]) -> AnyhowResult<()> 
 
     // Continue to relay loop
 
+    // Save original console mode before anything modifies it
+    #[cfg(windows)]
+    let original_console_mode = fresh_winterm::save_console_mode();
+
     // Enable raw mode - the server sends terminal setup sequences (alternate screen, etc.)
     // but we need raw mode so key presses are forwarded immediately
     enable_raw_mode()?;
@@ -2560,6 +2564,11 @@ fn run_attach(session_name: Option<&str>, files: &[String]) -> AnyhowResult<()> 
     // The server sends terminal setup sequences (alternate screen, mouse capture, etc.)
     // through us, so we must undo all of them, not just raw mode.
     fresh::services::terminal_modes::emergency_cleanup();
+
+    // Restore original console mode AFTER all cleanup to ensure Quick Edit
+    // mode is properly restored on Windows.
+    #[cfg(windows)]
+    let _ = fresh_winterm::restore_console_mode(original_console_mode);
 
     // Handle result
     match result {
@@ -2715,6 +2724,11 @@ fn real_main() -> AnyhowResult<()> {
         );
     }
 
+    // Save the original console mode BEFORE anything modifies it (raw mode,
+    // enable_vt_input, etc.). Restored at the very end after all cleanup.
+    #[cfg(windows)]
+    let original_console_mode = fresh_winterm::save_console_mode();
+
     let SetupState {
         config,
         mut tracing_handles,
@@ -2851,6 +2865,13 @@ fn real_main() -> AnyhowResult<()> {
     // Restore terminal state
     terminal_modes.undo();
 
+    // Restore the original console mode AFTER all other cleanup (crossterm's
+    // disable_raw_mode, DisableMouseCapture, etc.) to ensure Quick Edit mode
+    // is properly restored. Without this, text selection with mouse doesn't
+    // work in Windows Terminal after exiting fresh.
+    #[cfg(windows)]
+    let _ = fresh_winterm::restore_console_mode(original_console_mode);
+
     // Check for updates after terminal is restored (using cached result)
     if let Some(update_result) = last_update_result {
         if update_result.update_available {
@@ -2893,8 +2914,93 @@ fn run_event_loop(
     )
 }
 
-/// Main event loop (non-Linux version without GPM)
-#[cfg(not(target_os = "linux"))]
+/// Main event loop (Windows version with VT input for bracketed paste support)
+#[cfg(windows)]
+fn run_event_loop(
+    editor: &mut Editor,
+    terminal: &mut Terminal<ratatui::backend::CrosstermBackend<io::Stdout>>,
+    workspace_enabled: bool,
+    key_translator: &KeyTranslator,
+) -> AnyhowResult<()> {
+    use fresh::server::input_parser::InputParser;
+    use fresh_winterm::{VtInputEvent, VtInputReader};
+
+    let _old_console_mode = fresh_winterm::enable_vt_input()?;
+    fresh_winterm::enable_mouse_tracking()?;
+
+    // Spawn a dedicated reader thread to drain the console buffer as fast
+    // as possible. This prevents the Windows console from dropping bytes
+    // from VT mouse sequences under high event rates (1003 all-motion).
+    let reader = VtInputReader::spawn();
+
+    let mut input_parser = InputParser::new();
+    let mut event_buffer: std::collections::VecDeque<CrosstermEvent> =
+        std::collections::VecDeque::new();
+
+    let result = run_event_loop_common(
+        editor,
+        terminal,
+        workspace_enabled,
+        key_translator,
+        |timeout| -> AnyhowResult<Option<CrosstermEvent>> {
+            // Return buffered events first
+            if let Some(event) = event_buffer.pop_front() {
+                return Ok(Some(event));
+            }
+
+            // Drain all available events from the reader thread
+            let mut got_any = false;
+            loop {
+                let event = if !got_any {
+                    reader.poll(timeout)
+                } else {
+                    // Subsequent: non-blocking drain of anything queued
+                    reader.try_recv()
+                };
+
+                match event {
+                    Some(VtInputEvent::VtBytes(bytes)) => {
+                        let parsed = input_parser.parse(&bytes);
+                        for ev in parsed {
+                            event_buffer.push_back(ev);
+                        }
+                        got_any = true;
+                    }
+                    Some(VtInputEvent::Resize) => {
+                        if let Ok((cols, rows)) = crossterm::terminal::size() {
+                            event_buffer.push_back(CrosstermEvent::Resize(cols, rows));
+                        }
+                        got_any = true;
+                    }
+                    Some(VtInputEvent::FocusGained) => {
+                        event_buffer.push_back(CrosstermEvent::FocusGained);
+                        got_any = true;
+                    }
+                    Some(VtInputEvent::FocusLost) => {
+                        event_buffer.push_back(CrosstermEvent::FocusLost);
+                        got_any = true;
+                    }
+                    None => break,
+                }
+            }
+
+            if !got_any {
+                // Timed out — flush standalone ESC if any (MS Edit pattern)
+                let flushed = input_parser.parse(b"");
+                for ev in flushed {
+                    event_buffer.push_back(ev);
+                }
+            }
+
+            Ok(event_buffer.pop_front())
+        },
+    );
+
+    result
+}
+
+/// Main event loop (non-Linux, non-Windows version — e.g., macOS)
+#[cfg(not(any(target_os = "linux", windows)))]
 fn run_event_loop(
     editor: &mut Editor,
     terminal: &mut Terminal<ratatui::backend::CrosstermBackend<io::Stdout>>,

@@ -196,13 +196,27 @@ impl TerminalModes {
             tracing::debug!("Keyboard enhancement disabled by config");
         }
 
-        // Enable mouse capture
-        if let Err(e) = stdout().execute(EnableMouseCapture) {
-            tracing::warn!("Failed to enable mouse capture: {}", e);
-            // Non-fatal, continue without it
-        } else {
+        // Enable mouse capture.
+        // On Windows, skip crossterm's EnableMouseCapture — it replaces the
+        // entire console mode with ENABLE_MOUSE_INPUT (removing VT input mode)
+        // and doesn't write VT tracking sequences. Mouse is handled by
+        // win_vt_input::enable_vt_input() + enable_mouse_tracking() instead.
+        #[cfg(not(windows))]
+        {
+            if let Err(e) = stdout().execute(EnableMouseCapture) {
+                tracing::warn!("Failed to enable mouse capture: {}", e);
+                // Non-fatal, continue without it
+            } else {
+                modes.mouse_capture = true;
+                tracing::debug!("Enabled mouse capture");
+            }
+        }
+        #[cfg(windows)]
+        {
             modes.mouse_capture = true;
-            tracing::debug!("Enabled mouse capture");
+            tracing::debug!(
+                "Skipped crossterm EnableMouseCapture on Windows (handled by win_vt_input)"
+            );
         }
 
         // Enable bracketed paste
@@ -225,7 +239,11 @@ impl TerminalModes {
     pub fn undo(&mut self) {
         // Best-effort terminal teardown — if stdout is broken, we can't recover.
         // Disable mouse capture
+        // On Windows, skip crossterm's DisableMouseCapture (same reason as enable).
+        // Mouse cleanup is handled by win_vt_input::disable_mouse_tracking() +
+        // restore_console_mode() in the event loop.
         if self.mouse_capture {
+            #[cfg(not(windows))]
             let _ = stdout().execute(DisableMouseCapture);
             self.mouse_capture = false;
             tracing::debug!("Disabled mouse capture");

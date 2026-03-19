@@ -11,7 +11,9 @@
 //! All complexity (input parsing, rendering, editor logic) lives server-side.
 
 use std::io;
+#[cfg(unix)]
 use std::sync::atomic::AtomicBool;
+#[cfg(unix)]
 use std::sync::Arc;
 
 use crate::server::ipc::{ClientConnection, SocketPaths};
@@ -21,8 +23,6 @@ use crate::server::protocol::{
 
 #[cfg(unix)]
 mod relay_unix;
-#[cfg(windows)]
-mod relay_windows;
 
 /// Client configuration
 pub struct ClientConfig {
@@ -123,17 +123,22 @@ pub fn run_client_relay(
     #[cfg(not(windows))]
     conn.set_data_nonblocking(true)?;
 
-    // Set up signal handler for resize (Unix)
-    let resize_flag = Arc::new(AtomicBool::new(false));
-    #[cfg(unix)]
-    relay_unix::setup_resize_handler(resize_flag.clone())?;
-
     // Run the platform-specific relay loop
     #[cfg(unix)]
-    return relay_unix::relay_loop(&mut conn, resize_flag);
+    {
+        let resize_flag = Arc::new(AtomicBool::new(false));
+        relay_unix::setup_resize_handler(resize_flag.clone())?;
+        return relay_unix::relay_loop(&mut conn, resize_flag);
+    }
 
     #[cfg(windows)]
-    return relay_windows::relay_loop(&mut conn);
+    {
+        let result = fresh_winterm::relay_loop(&mut conn)?;
+        return Ok(match result {
+            fresh_winterm::RelayExitReason::ServerQuit => ClientExitReason::ServerQuit,
+            fresh_winterm::RelayExitReason::Detached => ClientExitReason::Detached,
+        });
+    }
 }
 
 /// Set the system clipboard on the client side.
@@ -158,19 +163,48 @@ pub fn get_terminal_size() -> io::Result<TermSize> {
 
     #[cfg(windows)]
     {
-        use windows_sys::Win32::System::Console::{
-            GetConsoleScreenBufferInfo, GetStdHandle, CONSOLE_SCREEN_BUFFER_INFO, STD_OUTPUT_HANDLE,
-        };
+        let size = fresh_winterm::get_terminal_size()?;
+        Ok(TermSize::new(size.cols, size.rows))
+    }
+}
 
-        unsafe {
-            let handle = GetStdHandle(STD_OUTPUT_HANDLE);
-            let mut info: CONSOLE_SCREEN_BUFFER_INFO = std::mem::zeroed();
-            if GetConsoleScreenBufferInfo(handle, &mut info) == 0 {
-                return Err(io::Error::last_os_error());
+// --- RelayConnection trait impl for ClientConnection (Windows only) ---
+
+#[cfg(windows)]
+impl fresh_winterm::RelayConnection for ClientConnection {
+    fn try_read_data(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.read_data(buf)
+    }
+
+    fn try_read_control_byte(&mut self, buf: &mut [u8; 1]) -> io::Result<usize> {
+        self.control.try_read(buf)
+    }
+
+    fn write_data(&mut self, buf: &[u8]) -> io::Result<()> {
+        ClientConnection::write_data(self, buf)
+    }
+
+    fn send_resize(&mut self, cols: u16, rows: u16) -> io::Result<()> {
+        let msg = serde_json::to_string(&ClientControl::Resize { cols, rows }).unwrap();
+        ClientConnection::write_control(self, &msg)
+    }
+
+    fn handle_server_control(&mut self, msg: &str) -> Option<fresh_winterm::RelayExitReason> {
+        if let Ok(ctrl) = serde_json::from_str::<ServerControl>(msg) {
+            match ctrl {
+                ServerControl::Quit { .. } => Some(fresh_winterm::RelayExitReason::ServerQuit),
+                ServerControl::SetClipboard {
+                    text,
+                    use_osc52,
+                    use_system_clipboard,
+                } => {
+                    set_client_clipboard(&text, use_osc52, use_system_clipboard);
+                    None
+                }
+                _ => None,
             }
-            let cols = (info.srWindow.Right - info.srWindow.Left + 1) as u16;
-            let rows = (info.srWindow.Bottom - info.srWindow.Top + 1) as u16;
-            Ok(TermSize::new(cols, rows))
+        } else {
+            None
         }
     }
 }

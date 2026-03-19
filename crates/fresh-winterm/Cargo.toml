@@ -1,0 +1,19 @@
+[package]
+name = "fresh-winterm"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Windows terminal I/O helpers for fresh editor (VT input, console relay, terminal size)"
+
+[dependencies]
+tracing.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_System_Console",
+] }

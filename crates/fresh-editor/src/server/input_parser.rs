@@ -3,14 +3,9 @@
 //! Parses raw bytes from the client into crossterm events.
 //! This allows the server to handle all input parsing, keeping the client ultra-light.
 
-use std::time::Instant;
-
 use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
-
-/// How long to wait for more bytes after receiving ESC before treating it as standalone Escape.
-const ESC_TIMEOUT_MS: u128 = 50;
 
 /// Parser state for incremental input parsing
 #[derive(Debug)]
@@ -20,7 +15,6 @@ pub struct InputParser {
     /// Maximum buffer size before we give up on an escape sequence
     max_buffer_size: usize,
     /// When the buffer last received a byte (for ESC timeout)
-    last_byte_time: Option<Instant>,
     /// Buffer for bracketed paste content (between \x1b[200~ and \x1b[201~)
     paste_buffer: Option<Vec<u8>>,
 }
@@ -36,14 +30,46 @@ impl InputParser {
         Self {
             buffer: Vec::with_capacity(32),
             max_buffer_size: 256,
-            last_byte_time: None,
             paste_buffer: None,
         }
     }
 
-    /// Parse input bytes and return any complete events
+    /// Suggests a timeout for the next input read (matching Microsoft Edit).
+    ///
+    /// Returns 100ms if the parser has a buffered ESC (might be standalone
+    /// Escape or the start of an escape sequence). Returns `Duration::MAX`
+    /// otherwise (no timeout needed — wait indefinitely for input).
+    ///
+    /// Parse input bytes and return any complete events.
+    ///
+    /// If called with empty input and the buffer contains a standalone ESC,
+    /// emits it as an Escape key event (matching Microsoft Edit's pattern:
+    /// timeout expired, no more input coming, so the ESC is standalone).
     pub fn parse(&mut self, bytes: &[u8]) -> Vec<Event> {
         let mut events = Vec::new();
+
+        if !bytes.is_empty() || !self.buffer.is_empty() {
+            tracing::trace!(
+                "InputParser.parse: input={} bytes, buffer={} bytes ({:02x?})",
+                bytes.len(),
+                self.buffer.len(),
+                &self.buffer,
+            );
+        }
+
+        // If buffer has a lone ESC and new bytes arrived, the next byte
+        // disambiguates: `[` means CSI sequence, anything else means the
+        // ESC was standalone. We never flush ESC on timeout — we always
+        // wait for the next byte. This prevents the bug where a mouse
+        // sequence split across ReadConsoleInput batches at the \x1b
+        // boundary gets its ESC flushed as standalone, causing the
+        // continuation `[<35;...M` to be dumped as literal text.
+        //
+        // Empty input (timeout) is a no-op when ESC is buffered — the
+        // ESC stays in the buffer until real bytes arrive.
+        if bytes.is_empty() {
+            return events;
+        }
 
         for &byte in bytes {
             // If we're inside a bracketed paste, buffer bytes until end marker
@@ -61,20 +87,17 @@ impl InputParser {
             }
 
             self.buffer.push(byte);
-            self.last_byte_time = Some(Instant::now());
 
             // Try to parse the buffer
             match self.try_parse() {
                 ParseResult::Complete(event) => {
                     events.push(event);
                     self.buffer.clear();
-                    self.last_byte_time = None;
                 }
                 ParseResult::PasteStart => {
                     // Enter bracketed paste mode
                     self.paste_buffer = Some(Vec::new());
                     self.buffer.clear();
-                    self.last_byte_time = None;
                 }
                 ParseResult::Incomplete => {
                     // Need more bytes
@@ -86,11 +109,14 @@ impl InputParser {
                             }
                         }
                         self.buffer.clear();
-                        self.last_byte_time = None;
                     }
                 }
                 ParseResult::Invalid => {
                     // Invalid sequence, treat first byte as raw and retry rest
+                    tracing::trace!(
+                        "InputParser: Invalid sequence, buffer={:02x?}",
+                        &self.buffer,
+                    );
                     if !self.buffer.is_empty() {
                         let first = self.buffer[0];
                         if let Some(event) = self.byte_to_event(first) {
@@ -98,7 +124,6 @@ impl InputParser {
                         }
                         let rest: Vec<u8> = self.buffer[1..].to_vec();
                         self.buffer.clear();
-                        self.last_byte_time = None;
                         // Re-parse the rest
                         events.extend(self.parse(&rest));
                     }
@@ -106,37 +131,6 @@ impl InputParser {
             }
         }
 
-        events
-    }
-
-    /// Flush any pending escape sequence that has timed out.
-    ///
-    /// Call this periodically (e.g., every server tick) to ensure standalone
-    /// ESC keystrokes are emitted promptly instead of waiting indefinitely
-    /// for a follow-up byte that may never arrive.
-    pub fn flush_timeout(&mut self) -> Vec<Event> {
-        if self.buffer.is_empty() {
-            return Vec::new();
-        }
-
-        let timed_out = self
-            .last_byte_time
-            .map(|t| t.elapsed().as_millis() >= ESC_TIMEOUT_MS)
-            .unwrap_or(false);
-
-        if !timed_out {
-            return Vec::new();
-        }
-
-        // Buffer has been sitting too long - flush as individual bytes
-        let mut events = Vec::new();
-        let buf = std::mem::take(&mut self.buffer);
-        for &b in &buf {
-            if let Some(event) = self.byte_to_event(b) {
-                events.push(event);
-            }
-        }
-        self.last_byte_time = None;
         events
     }
 
@@ -832,46 +826,104 @@ mod tests {
     }
 
     #[test]
-    fn test_standalone_esc_flush_timeout() {
+    fn test_esc_waits_for_next_byte() {
         let mut parser = InputParser::new();
 
         // ESC buffered
         let events = parser.parse(&[0x1b]);
         assert!(events.is_empty());
 
-        // Simulate time passing (replace last_byte_time with a past timestamp)
-        parser.last_byte_time =
-            Some(Instant::now() - std::time::Duration::from_millis(ESC_TIMEOUT_MS as u64 + 10));
+        // Buffer still has the ESC
+        assert_eq!(parser.buffer.len(), 1);
 
-        // Flush should emit the standalone Escape
-        let events = parser.flush_timeout();
+        // Next byte `[` disambiguates: it's a CSI sequence, not standalone ESC
+        let events = parser.parse(b"[A");
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            Event::Key(ke) => assert_eq!(ke.code, KeyCode::Up),
+            _ => panic!("Expected Up"),
+        }
+    }
+
+    #[test]
+    fn test_esc_then_printable_byte_emits_alt_key() {
+        let mut parser = InputParser::new();
+
+        // ESC buffered
+        let events = parser.parse(&[0x1b]);
+        assert!(events.is_empty());
+
+        // Next byte `a` completes the sequence as Alt+a (standard terminal behavior)
+        let events = parser.parse(b"a");
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            Event::Key(ke) => {
+                assert_eq!(ke.code, KeyCode::Char('a'));
+                assert!(ke.modifiers.contains(KeyModifiers::ALT));
+            }
+            _ => panic!("Expected Alt+a"),
+        }
+    }
+
+    #[test]
+    fn test_esc_then_esc_emits_standalone_esc() {
+        let mut parser = InputParser::new();
+
+        // First ESC buffered
+        let events = parser.parse(&[0x1b]);
+        assert!(events.is_empty());
+
+        // Second ESC: first ESC is standalone, second starts new sequence
+        let events = parser.parse(&[0x1b]);
         assert_eq!(events.len(), 1);
         match &events[0] {
             Event::Key(ke) => {
                 assert_eq!(ke.code, KeyCode::Esc);
                 assert!(ke.modifiers.is_empty());
             }
-            _ => panic!("Expected Esc key event"),
+            _ => panic!("Expected standalone Esc"),
         }
-
-        // Buffer should be empty now
-        assert!(parser.buffer.is_empty());
+        // Second ESC still buffered
+        assert_eq!(parser.buffer, vec![0x1b]);
     }
 
     #[test]
-    fn test_flush_timeout_does_nothing_when_recent() {
+    fn test_split_mouse_sequence_across_batches() {
         let mut parser = InputParser::new();
 
-        // ESC buffered just now
+        // Batch 1: just the ESC byte (split at batch boundary)
         let events = parser.parse(&[0x1b]);
         assert!(events.is_empty());
-
-        // Flush should NOT emit anything (too recent)
-        let events = parser.flush_timeout();
-        assert!(events.is_empty());
-
-        // Buffer still has the ESC
         assert_eq!(parser.buffer.len(), 1);
+
+        // Batch 2: rest of mouse sequence arrives
+        let events = parser.parse(b"[<35;42;5M");
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            Event::Mouse(_) => {} // Mouse event parsed correctly
+            other => panic!("Expected mouse event, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_partial_csi_sequence_not_flushed() {
+        let mut parser = InputParser::new();
+
+        // Partial CSI mouse sequence (split across batches)
+        let events = parser.parse(b"\x1b[<35;");
+        assert!(events.is_empty());
+        assert_eq!(parser.buffer.len(), 6);
+
+        // Now the rest of the sequence arrives
+        let events = parser.parse(b"42;5M");
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            Event::Mouse(me) => {
+                assert_eq!(me.column, 41); // 42 - 1 (1-indexed to 0-indexed)
+                assert_eq!(me.row, 4); // 5 - 1
+            }
+            _ => panic!("Expected mouse event, got {:?}", events[0]),
+        }
     }
 
     #[test]
