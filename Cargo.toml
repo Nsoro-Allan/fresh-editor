@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.17"
+version = "0.2.18"
 authors = ["Noam Lewis"]
 edition = "2021"
 license = "GPL-2.0"
@@ -22,12 +22,12 @@ documentation = "https://docs.rs/fresh-editor"
 
 [workspace.dependencies]
 # Local crates
-fresh-core = { version = "0.2.17", path = "crates/fresh-core" }
-fresh-gui = { version = "0.2.17", path = "crates/fresh-gui" }
-fresh-parser-js = { version = "0.2.17", path = "crates/fresh-parser-js" }
-fresh-languages = { version = "0.2.17", path = "crates/fresh-languages" }
-fresh-plugin-runtime = { version = "0.2.17", path = "crates/fresh-plugin-runtime" }
-fresh-plugin-api-macros = { version = "0.2.17", path = "crates/fresh-plugin-api-macros" }
+fresh-core = { version = "0.2.18", path = "crates/fresh-core" }
+fresh-gui = { version = "0.2.18", path = "crates/fresh-gui" }
+fresh-parser-js = { version = "0.2.18", path = "crates/fresh-parser-js" }
+fresh-languages = { version = "0.2.18", path = "crates/fresh-languages" }
+fresh-plugin-runtime = { version = "0.2.18", path = "crates/fresh-plugin-runtime" }
+fresh-plugin-api-macros = { version = "0.2.18", path = "crates/fresh-plugin-api-macros" }
 fresh-winterm = { version = "0.2.17", path = "crates/fresh-winterm" }
 
 # External crates
