@@ -26,7 +26,11 @@ fn assert_csi_u_parses(input: &[u8], expected_code: KeyCode, expected_mods: KeyM
     );
     match &events[0] {
         Event::Key(ke) => {
-            assert_eq!(ke.code, expected_code, "Input {:02x?}: wrong keycode", input);
+            assert_eq!(
+                ke.code, expected_code,
+                "Input {:02x?}: wrong keycode",
+                input
+            );
             assert_eq!(
                 ke.modifiers, expected_mods,
                 "Input {:02x?}: wrong modifiers",
@@ -80,11 +84,7 @@ fn test_input_parser_csi_u_keycodes_and_modifiers() {
         (b"\x1b[13;5u", KeyCode::Enter, KeyModifiers::CONTROL),
         (b"\x1b[9;5u", KeyCode::Tab, KeyModifiers::CONTROL),
         (b"\x1b[27u", KeyCode::Esc, KeyModifiers::empty()),
-        (
-            b"\x1b[127;5u",
-            KeyCode::Backspace,
-            KeyModifiers::CONTROL,
-        ),
+        (b"\x1b[127;5u", KeyCode::Backspace, KeyModifiers::CONTROL),
         (b"\x1b[97u", KeyCode::Char('a'), KeyModifiers::empty()),
         // modifier 4 → param-1 = 3 → shift(1) | alt(2)
         (
@@ -93,6 +93,28 @@ fn test_input_parser_csi_u_keycodes_and_modifiers() {
             KeyModifiers::SHIFT.union(KeyModifiers::ALT),
         ),
         (b"\x1b[13;2u", KeyCode::Enter, KeyModifiers::SHIFT),
+    ];
+
+    for &(input, code, mods) in cases {
+        assert_csi_u_parses(input, code, mods);
+    }
+}
+
+/// xterm modifyOtherKeys mode 2: CSI 27 ; modifier ; keycode ~
+/// Must produce the correct KeyCode and modifiers, not leak as literal text.
+#[test]
+fn test_input_parser_xterm_modify_other_keys() {
+    let cases: &[(&[u8], KeyCode, KeyModifiers)] = &[
+        // CSI 27 ; 5 ; 97 ~ = Ctrl+a
+        (b"\x1b[27;5;97~", KeyCode::Char('a'), KeyModifiers::CONTROL),
+        // CSI 27 ; 5 ; 13 ~ = Ctrl+Enter
+        (b"\x1b[27;5;13~", KeyCode::Enter, KeyModifiers::CONTROL),
+        // CSI 27 ; 2 ; 9 ~ = Shift+Tab
+        (b"\x1b[27;2;9~", KeyCode::Tab, KeyModifiers::SHIFT),
+        // CSI 27 ; 3 ; 127 ~ = Alt+Backspace
+        (b"\x1b[27;3;127~", KeyCode::Backspace, KeyModifiers::ALT),
+        // CSI 27 ; 1 ; 27 ~ = Escape (no modifiers, param 1 = none)
+        (b"\x1b[27;1;27~", KeyCode::Esc, KeyModifiers::empty()),
     ];
 
     for &(input, code, mods) in cases {

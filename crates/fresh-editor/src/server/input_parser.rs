@@ -263,12 +263,38 @@ impl InputParser {
             b'I' => ParseResult::Complete(Event::FocusGained),
             b'O' => ParseResult::Complete(Event::FocusLost),
 
+            // CSI u (fixterms / kitty keyboard protocol): CSI keycode ; modifiers u
+            b'u' => self.parse_csi_u_sequence(params),
+
             _ => ParseResult::Invalid,
         }
     }
 
     /// Parse tilde sequences: CSI number ~
     fn parse_tilde_sequence(&self, params: &[u8]) -> ParseResult {
+        let params_str = std::str::from_utf8(params).unwrap_or("");
+        let parts: Vec<&str> = params_str.split(';').collect();
+
+        // xterm modifyOtherKeys mode 2: CSI 27 ; modifier ; keycode ~
+        if parts.len() == 3 && parts[0] == "27" {
+            let mods_param: u8 = parts[1].parse().unwrap_or(1);
+            let codepoint: u32 = parts[2].parse().unwrap_or(0);
+            let modifiers = modifiers_from_param(mods_param);
+
+            let keycode = match codepoint {
+                9 => KeyCode::Tab,
+                13 => KeyCode::Enter,
+                27 => KeyCode::Esc,
+                127 => KeyCode::Backspace,
+                cp => match char::from_u32(cp) {
+                    Some(c) => KeyCode::Char(c),
+                    None => return ParseResult::Invalid,
+                },
+            };
+
+            return ParseResult::Complete(Event::Key(KeyEvent::new(keycode, modifiers)));
+        }
+
         let (num, modifiers) = self.parse_num_and_modifiers(params);
 
         // Bracketed paste start: CSI 200 ~
@@ -307,6 +333,33 @@ impl InputParser {
             23 => KeyCode::F(11),
             24 => KeyCode::F(12),
             _ => return ParseResult::Invalid,
+        };
+
+        ParseResult::Complete(Event::Key(KeyEvent::new(keycode, modifiers)))
+    }
+
+    /// Parse CSI u (fixterms / kitty keyboard protocol): CSI keycode ; modifiers u
+    ///
+    /// The keycode is a Unicode codepoint. Special codepoints map to functional
+    /// keys (Enter, Tab, Esc, Backspace, etc.); printable codepoints map to
+    /// Char. Modifiers use the same encoding as standard CSI sequences.
+    fn parse_csi_u_sequence(&self, params: &[u8]) -> ParseResult {
+        let params_str = std::str::from_utf8(params).unwrap_or("");
+        let parts: Vec<&str> = params_str.split(';').collect();
+
+        let codepoint: u32 = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
+        let mods_param: u8 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(1);
+        let modifiers = modifiers_from_param(mods_param);
+
+        let keycode = match codepoint {
+            9 => KeyCode::Tab,
+            13 => KeyCode::Enter,
+            27 => KeyCode::Esc,
+            127 => KeyCode::Backspace,
+            cp => match char::from_u32(cp) {
+                Some(c) => KeyCode::Char(c),
+                None => return ParseResult::Invalid,
+            },
         };
 
         ParseResult::Complete(Event::Key(KeyEvent::new(keycode, modifiers)))
