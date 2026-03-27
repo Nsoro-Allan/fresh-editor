@@ -98,6 +98,7 @@ pub mod server_session_lifecycle;
 pub mod session_hot_exit;
 pub mod settings;
 pub mod settings_config_issue_806;
+pub mod settings_lsp_entry_dialog_bugs;
 pub mod settings_paste;
 pub mod settings_ruler_keyboard_nav;
 pub mod settings_scrolled_list_click;
