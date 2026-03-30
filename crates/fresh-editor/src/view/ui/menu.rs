@@ -491,6 +491,7 @@ impl MenuRenderer {
     ///
     /// # Returns
     /// `MenuLayout` containing hit areas for mouse interaction
+    #[allow(clippy::too_many_arguments)]
     pub fn render(
         frame: &mut Frame,
         area: Rect,

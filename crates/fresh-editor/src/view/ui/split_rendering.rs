@@ -1548,6 +1548,7 @@ impl SplitRenderer {
 
     /// Render a composite buffer (side-by-side view of multiple source buffers)
     /// Uses ViewLines for proper syntax highlighting, ANSI handling, etc.
+    #[allow(clippy::too_many_arguments)]
     fn render_composite_buffer(
         frame: &mut Frame,
         area: Rect,
@@ -4105,6 +4106,7 @@ impl SplitRenderer {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn decoration_context(
         state: &mut EditorState,
         viewport_start: usize,

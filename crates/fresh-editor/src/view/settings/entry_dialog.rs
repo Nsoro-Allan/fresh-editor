@@ -406,10 +406,7 @@ impl EntryDialogState {
         match &item.control {
             SettingControl::Map(state) => {
                 // Map returns bool: true = handled internally, false = at boundary
-                let at_boundary = match state.focused_entry {
-                    None => true, // On add-new → exit
-                    _ => false,
-                };
+                let at_boundary = state.focused_entry.is_none(); // On add-new → exit
                 if at_boundary {
                     return false;
                 }

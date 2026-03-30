@@ -204,7 +204,7 @@ impl Editor {
 
         // Tab bars — record from tab layouts
         let tab_layouts = self.cached_layout.tab_layouts.clone();
-        for (_, tab_layout) in &tab_layouts {
+        for tab_layout in tab_layouts.values() {
             {
                 let area = tab_layout.bar_area;
                 let info = CellThemeInfo {

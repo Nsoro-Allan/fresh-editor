@@ -207,6 +207,7 @@ impl<'a> PopupHitTester<'a> {
 
 /// Convert cached popup areas to PopupLayoutInfo for hit testing
 /// This function bridges the gap between the cached layout format and our hit testing API
+#[allow(clippy::type_complexity)]
 pub fn popup_areas_to_layout_info(
     popup_areas: &[(usize, Rect, Rect, usize, usize, Option<Rect>, usize)],
 ) -> Vec<PopupLayoutInfo> {

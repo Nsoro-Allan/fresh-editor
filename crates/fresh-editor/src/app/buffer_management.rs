@@ -2499,6 +2499,7 @@ impl Editor {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn queue_file_open(
         &mut self,
         path: PathBuf,

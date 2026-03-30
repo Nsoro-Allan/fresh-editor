@@ -2530,6 +2530,7 @@ struct LspTask {
 
 impl LspTask {
     /// Create a new LSP task
+    #[allow(clippy::too_many_arguments)]
     async fn spawn(
         command: &str,
         args: &[String],
@@ -3485,6 +3486,7 @@ async fn read_message_from_stdout(
 }
 
 /// Standalone function to handle and dispatch messages (for reader task)
+#[allow(clippy::too_many_arguments)]
 #[allow(clippy::type_complexity)]
 #[allow(clippy::let_underscore_must_use)] // oneshot/mpsc send results are best-effort; receiver drop is not actionable
 async fn handle_message_dispatch(
@@ -3981,6 +3983,7 @@ pub struct LspHandle {
 #[allow(clippy::let_underscore_must_use)]
 impl LspHandle {
     /// Spawn a new LSP server in an async task
+    #[allow(clippy::too_many_arguments)]
     pub fn spawn(
         runtime: &tokio::runtime::Handle,
         command: &str,

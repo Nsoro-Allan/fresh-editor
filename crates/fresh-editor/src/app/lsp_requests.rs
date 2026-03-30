@@ -2544,8 +2544,6 @@ impl Editor {
 
     /// Start rename mode - select the symbol at cursor and allow inline editing
     pub(crate) fn start_rename(&mut self) -> AnyhowResult<()> {
-        use crate::primitives::word_navigation::{find_word_end, find_word_start};
-
         // If server supports prepareRename, validate first
         if self.server_supports_prepare_rename() {
             self.send_prepare_rename();

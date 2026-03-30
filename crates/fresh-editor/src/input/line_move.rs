@@ -222,6 +222,7 @@ pub(crate) fn move_lines(
         return;
     }
 
+    #[allow(clippy::type_complexity)]
     let cursor_snapshots: Vec<(CursorId, Option<Range<usize>>, usize, Option<usize>, usize)> =
         cursors
             .iter()

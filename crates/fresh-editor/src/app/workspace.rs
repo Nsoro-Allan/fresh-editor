@@ -1200,6 +1200,7 @@ impl Editor {
     }
 
     /// Recursively restore the split layout from a serialized tree
+    #[allow(clippy::too_many_arguments)]
     fn restore_split_node(
         &mut self,
         node: &SerializedSplitNode,

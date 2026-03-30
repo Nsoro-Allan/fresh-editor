@@ -520,6 +520,7 @@ impl TextMateEngine {
     /// Try to do a partial update: re-parse from the dirty point until convergence,
     /// then splice new spans into the cache. Returns None if convergence doesn't
     /// happen within parse_end (caller should fall back to full re-parse).
+    #[allow(clippy::too_many_arguments)]
     fn try_partial_update(
         &mut self,
         buffer: &Buffer,
@@ -740,6 +741,7 @@ impl TextMateEngine {
 
     /// Full re-parse from desired_parse_start to parse_end. Used on cold start
     /// or when partial update fails (no convergence).
+    #[allow(clippy::too_many_arguments)]
     fn full_parse(
         &mut self,
         buffer: &Buffer,

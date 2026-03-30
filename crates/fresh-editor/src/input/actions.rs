@@ -712,6 +712,7 @@ fn collect_insert_cursor_data(state: &mut EditorState, cursors: &Cursors) -> Vec
 }
 
 /// Handle InsertChar action - insert character at each cursor position.
+#[allow(clippy::too_many_arguments)]
 fn insert_char_events(
     state: &mut EditorState,
     cursors: &Cursors,
@@ -906,6 +907,7 @@ fn transform_case<F>(
 /// # Returns
 /// * `Some(Vec<Event>)` - Events to apply for this action
 /// * `None` - If the action doesn't generate events (like Quit, Save, etc.)
+#[allow(clippy::too_many_arguments)]
 pub fn action_to_events(
     state: &mut EditorState,
     cursors: &mut Cursors,

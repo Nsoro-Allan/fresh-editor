@@ -191,6 +191,7 @@ fn search_composite_control(
 }
 
 /// Recursively search JSON values for string matches
+#[allow(clippy::too_many_arguments)]
 fn search_json_value(
     results: &mut Vec<SearchResult>,
     page_index: usize,

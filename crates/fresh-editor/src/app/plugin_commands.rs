@@ -2034,6 +2034,7 @@ impl Editor {
     /// - Spawns a tokio task that walks the directory tree and fans out file searches
     /// - Each file's matches are sent back immediately via AsyncBridge
     /// - Supports cancellation via AtomicBool when a new search starts
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn handle_grep_project_streaming(
         &mut self,
         pattern: String,

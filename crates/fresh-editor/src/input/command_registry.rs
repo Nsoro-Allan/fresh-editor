@@ -189,6 +189,7 @@ impl CommandRegistry {
     ///
     /// `has_lsp_config` indicates whether the active buffer's language has an LSP server
     /// configured. When false, LSP start/restart/toggle commands are disabled.
+    #[allow(clippy::too_many_arguments)]
     pub fn filter(
         &self,
         query: &str,

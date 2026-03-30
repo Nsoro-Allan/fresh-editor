@@ -2208,6 +2208,7 @@ impl Editor {
     /// Calculate scroll position for visual-row-aware scrollbar drag.
     /// The thumb follows the mouse position, accounting for where on the thumb the user clicked.
     /// Returns (byte_position, view_line_offset) for proper positioning within wrapped lines.
+    #[allow(clippy::too_many_arguments)]
     fn calculate_scrollbar_drag_relative_visual(
         buffer: &mut crate::model::buffer::Buffer,
         current_row: u16,
@@ -2318,6 +2319,7 @@ impl Editor {
     /// applied here when converting screen coordinates.
     ///
     /// Returns None if the position cannot be determined (e.g., click in gutter for click handler)
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn screen_to_buffer_position(
         col: u16,
         row: u16,
