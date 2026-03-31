@@ -1027,6 +1027,14 @@
             "$ref": "#/$defs/OnSaveAction"
           },
           "default": []
+        },
+        "word_characters": {
+          "description": "Extra characters (beyond alphanumeric and `_`) considered part of\nidentifiers for this language. Used by dabbrev and buffer-word\ncompletion to correctly tokenise language-specific naming conventions.\n\nExamples:\n- Lisp/Clojure/CSS: `\"-\"` (kebab-case identifiers)\n- PHP/Bash: `\"$\"` (variable sigils)\n- Ruby: `\"?!\"` (predicate/bang methods)\n- Rust (default): `\"\"` (standard alphanumeric + underscore)",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
         }
       },
       "x-display-field": "/grammar"

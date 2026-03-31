@@ -407,18 +407,6 @@ impl Editor {
     }
 }
 
-/// Build a completion `PopupData` from a list of LSP `CompletionItem`s.
-///
-/// This is the single code path for creating completion popups, used both for
-/// the initial LSP completion response and for re-filtering during type-to-filter.
-pub(crate) fn build_completion_popup(
-    items: &[&lsp_types::CompletionItem],
-    selected: usize,
-) -> crate::model::event::PopupData {
-    let lsp_items = lsp_items_to_popup_items(items);
-    build_completion_popup_from_items(lsp_items, selected)
-}
-
 /// Build a completion popup from a combined list of already-converted items.
 ///
 /// Used when merging LSP results + buffer-word results into a single popup.
