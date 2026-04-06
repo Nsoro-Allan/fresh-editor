@@ -245,10 +245,10 @@ fn test_theme_selection_colors() {
     assert_ne!(dark_theme.selection_bg, light_theme.selection_bg);
 
     // Dark theme has a darker selection background
-    assert_eq!(dark_theme.selection_bg, Color::Rgb(38, 79, 120));
+    assert_eq!(dark_theme.selection_bg, Color::Rgb(50, 50, 60));
 
     // Light theme has a lighter selection background
-    assert_eq!(light_theme.selection_bg, Color::Rgb(173, 214, 255));
+    assert_eq!(light_theme.selection_bg, Color::Rgb(225, 232, 242));
 }
 
 #[test]

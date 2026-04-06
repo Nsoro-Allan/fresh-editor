@@ -877,12 +877,9 @@ fn compute_char_style(ctx: &CharStyleContext) -> CharStyleOutput {
         style = style.bg(ctx.current_line_bg);
     }
 
-    // Apply selection highlighting
+    // Apply selection highlighting (preserve fg/syntax colors, only change bg)
     if ctx.is_selected {
-        style = Style::default()
-            .fg(ctx.theme.editor_fg)
-            .bg(ctx.theme.selection_bg);
-        fg_theme_key = Some("editor.fg");
+        style = style.bg(ctx.theme.selection_bg);
         bg_theme_key = Some("editor.selection_bg");
         region = "Selection";
     }
