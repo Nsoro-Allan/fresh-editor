@@ -6,11 +6,11 @@
 
 * **Windows-1251 Encoding**: Added support for Windows-1251 (Cyrillic) encoding for loading and saving Cyrillic-script text files (#1453). Available in the encoding selector; auto-detected for text mixing uppercase and lowercase Cyrillic letters.
 
-* **Theme Editor and Package Manager**: Multi-panel plugin UIs now behave like native splits — per-panel mouse-wheel scrolling and scrollbars, draggable panel dividers, clicks routed to the panel under the cursor, the selected row staying visible as you navigate, and "Close Buffer" closing the whole UI in one go.
+* **Theme Editor and Package Manager**: Multi-panel plugin UIs now behave like native splits — per-panel mouse-wheel scrolling and scrollbars, draggable panel dividers, and the theme editor's own colors now use the active theme.
 
 * **File Finder in Command Palette (Ctrl+P)**: Much faster and more responsive on large local and remote trees — file enumeration runs in the background with results streaming in as they're found, typing a path like `etc/hosts` produces instant filesystem-confirmed matches, and ranking now reliably prefers contiguous matches (`results` finds `results.json` first) including multi-term queries that reconstruct a path or identifier (`etc hosts` → `/etc/hosts`, `save file` → `save_file.rs`).
 
-* **Review Diff**: Brough back features that were dropped in the rewrite in version 0.2.22: stage, unstage, and discard individual hunks; jump between hunks with `n`/`p`; leave line comments (`c`) and overall session notes (`N`), edit or delete them with confirmation, and see notes in the file list panel and export the review to a markdown file. Redesigned toolbar of styled key hints that adapts to the focused panel.
+* **Review Diff**: Brought back features that were dropped in the rewrite in version 0.2.22: stage, unstage, and discard individual hunks; jump between hunks with `n`/`p`; leave line comments (`c`) and overall session notes (`N`), edit or delete them with confirmation, see notes in the file list panel, and export your review notes to a markdown file. Redesigned toolbar of styled key hints that adapts to the focused panel.
 
 * **Keybinding Editor**: Special keys like Esc, Tab, and Enter can now be bound — press Enter on the key field to enter capture mode, then the next keypress is recorded as-is (#1501). Fixed parent modal to be dimmed while a sub-dialog is open.
 
