@@ -227,14 +227,6 @@
           "https://github.com/sinelaw/fresh-plugins-registry"
         ]
       }
-    },
-    "devcontainer": {
-      "description": "Devcontainer settings",
-      "$ref": "#/$defs/DevcontainerConfig",
-      "default": {
-        "auto_detect": true,
-        "cli_path": "devcontainer"
-      }
     }
   },
   "$defs": {
@@ -1547,22 +1539,6 @@
           "default": [
             "https://github.com/sinelaw/fresh-plugins-registry"
           ]
-        }
-      }
-    },
-    "DevcontainerConfig": {
-      "description": "Configuration for devcontainer support",
-      "type": "object",
-      "properties": {
-        "auto_detect": {
-          "description": "Automatically detect devcontainer.json when opening a directory (default: true)",
-          "type": "boolean",
-          "default": true
-        },
-        "cli_path": {
-          "description": "Path to the devcontainer CLI executable (default: \"devcontainer\")",
-          "type": "string",
-          "default": "devcontainer"
         }
       }
     }

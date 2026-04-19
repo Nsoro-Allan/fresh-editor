@@ -1132,7 +1132,6 @@ impl PartialConfig {
                 .packages
                 .map(|e| e.resolve(&defaults.packages))
                 .unwrap_or_else(|| defaults.packages.clone()),
-            devcontainer: defaults.devcontainer.clone(),
         }
     }
 }

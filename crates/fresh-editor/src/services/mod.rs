@@ -8,7 +8,6 @@ pub mod authority;
 pub mod clipboard;
 pub mod completion;
 pub mod counters;
-pub mod devcontainer;
 pub mod fs;
 #[cfg(target_os = "linux")]
 pub mod gpm;
