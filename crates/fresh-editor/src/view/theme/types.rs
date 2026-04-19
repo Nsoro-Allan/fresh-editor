@@ -1442,6 +1442,118 @@ impl Theme {
             _ => None,
         }
     }
+
+    /// Mutable companion to [`resolve_theme_key`]. Keep the two matches in
+    /// lock-step: any key readable by `resolve_theme_key` should also be
+    /// writable here, and vice versa.
+    pub fn resolve_theme_key_mut(&mut self, key: &str) -> Option<&mut Color> {
+        let parts: Vec<&str> = key.split('.').collect();
+        if parts.len() != 2 {
+            return None;
+        }
+        let (section, field) = (parts[0], parts[1]);
+        match section {
+            "editor" => match field {
+                "bg" => Some(&mut self.editor_bg),
+                "fg" => Some(&mut self.editor_fg),
+                "cursor" => Some(&mut self.cursor),
+                "inactive_cursor" => Some(&mut self.inactive_cursor),
+                "selection_bg" => Some(&mut self.selection_bg),
+                "current_line_bg" => Some(&mut self.current_line_bg),
+                "line_number_fg" => Some(&mut self.line_number_fg),
+                "line_number_bg" => Some(&mut self.line_number_bg),
+                "diff_add_bg" => Some(&mut self.diff_add_bg),
+                "diff_remove_bg" => Some(&mut self.diff_remove_bg),
+                "diff_modify_bg" => Some(&mut self.diff_modify_bg),
+                "ruler_bg" => Some(&mut self.ruler_bg),
+                "whitespace_indicator_fg" => Some(&mut self.whitespace_indicator_fg),
+                _ => None,
+            },
+            "ui" => match field {
+                "tab_active_fg" => Some(&mut self.tab_active_fg),
+                "tab_active_bg" => Some(&mut self.tab_active_bg),
+                "tab_inactive_fg" => Some(&mut self.tab_inactive_fg),
+                "tab_inactive_bg" => Some(&mut self.tab_inactive_bg),
+                "status_bar_fg" => Some(&mut self.status_bar_fg),
+                "status_bar_bg" => Some(&mut self.status_bar_bg),
+                "prompt_fg" => Some(&mut self.prompt_fg),
+                "prompt_bg" => Some(&mut self.prompt_bg),
+                "prompt_selection_fg" => Some(&mut self.prompt_selection_fg),
+                "prompt_selection_bg" => Some(&mut self.prompt_selection_bg),
+                "popup_bg" => Some(&mut self.popup_bg),
+                "popup_border_fg" => Some(&mut self.popup_border_fg),
+                "popup_selection_bg" => Some(&mut self.popup_selection_bg),
+                "popup_selection_fg" => Some(&mut self.popup_selection_fg),
+                "popup_text_fg" => Some(&mut self.popup_text_fg),
+                "menu_bg" => Some(&mut self.menu_bg),
+                "menu_fg" => Some(&mut self.menu_fg),
+                "menu_active_bg" => Some(&mut self.menu_active_bg),
+                "menu_active_fg" => Some(&mut self.menu_active_fg),
+                "help_bg" => Some(&mut self.help_bg),
+                "help_fg" => Some(&mut self.help_fg),
+                "help_key_fg" => Some(&mut self.help_key_fg),
+                "split_separator_fg" => Some(&mut self.split_separator_fg),
+                "scrollbar_thumb_fg" => Some(&mut self.scrollbar_thumb_fg),
+                "semantic_highlight_bg" => Some(&mut self.semantic_highlight_bg),
+                "file_status_added_fg" => Some(&mut self.file_status_added_fg),
+                "file_status_modified_fg" => Some(&mut self.file_status_modified_fg),
+                "file_status_deleted_fg" => Some(&mut self.file_status_deleted_fg),
+                "file_status_renamed_fg" => Some(&mut self.file_status_renamed_fg),
+                "file_status_untracked_fg" => Some(&mut self.file_status_untracked_fg),
+                "file_status_conflicted_fg" => Some(&mut self.file_status_conflicted_fg),
+                _ => None,
+            },
+            "syntax" => match field {
+                "keyword" => Some(&mut self.syntax_keyword),
+                "string" => Some(&mut self.syntax_string),
+                "comment" => Some(&mut self.syntax_comment),
+                "function" => Some(&mut self.syntax_function),
+                "type" => Some(&mut self.syntax_type),
+                "variable" => Some(&mut self.syntax_variable),
+                "constant" => Some(&mut self.syntax_constant),
+                "operator" => Some(&mut self.syntax_operator),
+                "punctuation_bracket" => Some(&mut self.syntax_punctuation_bracket),
+                "punctuation_delimiter" => Some(&mut self.syntax_punctuation_delimiter),
+                _ => None,
+            },
+            "diagnostic" => match field {
+                "error_fg" => Some(&mut self.diagnostic_error_fg),
+                "error_bg" => Some(&mut self.diagnostic_error_bg),
+                "warning_fg" => Some(&mut self.diagnostic_warning_fg),
+                "warning_bg" => Some(&mut self.diagnostic_warning_bg),
+                "info_fg" => Some(&mut self.diagnostic_info_fg),
+                "info_bg" => Some(&mut self.diagnostic_info_bg),
+                "hint_fg" => Some(&mut self.diagnostic_hint_fg),
+                "hint_bg" => Some(&mut self.diagnostic_hint_bg),
+                _ => None,
+            },
+            "search" => match field {
+                "match_bg" => Some(&mut self.search_match_bg),
+                "match_fg" => Some(&mut self.search_match_fg),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// Apply a map of `"section.field" -> Color` overrides to the running
+    /// theme in-place. Returns the number of keys that matched a known
+    /// theme field. Unknown keys are silently dropped so a typo in a fast
+    /// animation loop doesn't crash the caller.
+    pub fn override_colors<I, K>(&mut self, overrides: I) -> usize
+    where
+        I: IntoIterator<Item = (K, Color)>,
+        K: AsRef<str>,
+    {
+        let mut applied = 0;
+        for (key, color) in overrides {
+            if let Some(slot) = self.resolve_theme_key_mut(key.as_ref()) {
+                *slot = color;
+                applied += 1;
+            }
+        }
+        applied
+    }
 }
 
 // =============================================================================
@@ -1593,6 +1705,49 @@ mod tests {
             theme.resolve_theme_key("ui.file_status_modified_fg"),
             Some(Color::Rgb(181, 137, 0))
         );
+    }
+
+    #[test]
+    fn override_colors_writes_known_keys_and_drops_unknowns() {
+        let mut theme = Theme::load_builtin(THEME_DARK).expect("dark builtin");
+        let applied = theme.override_colors([
+            ("editor.bg".to_string(), Color::Rgb(10, 20, 30)),
+            ("ui.status_bar_fg".to_string(), Color::Rgb(1, 2, 3)),
+            ("does.not_exist".to_string(), Color::Rgb(9, 9, 9)),
+            ("garbage_no_dot".to_string(), Color::Rgb(9, 9, 9)),
+        ]);
+        assert_eq!(applied, 2, "only the two valid keys should be applied");
+        assert_eq!(theme.resolve_theme_key("editor.bg"), Some(Color::Rgb(10, 20, 30)));
+        assert_eq!(
+            theme.resolve_theme_key("ui.status_bar_fg"),
+            Some(Color::Rgb(1, 2, 3))
+        );
+    }
+
+    #[test]
+    fn resolve_theme_key_mut_matches_resolve_theme_key_domain() {
+        // If a key resolves readably, it must also resolve as a mutable
+        // slot — the two matches must stay in lock-step.
+        let mut theme = Theme::load_builtin(THEME_DARK).expect("dark builtin");
+        let probe = [
+            "editor.bg",
+            "editor.fg",
+            "ui.status_bar_fg",
+            "ui.tab_active_bg",
+            "syntax.keyword",
+            "diagnostic.error_fg",
+            "search.match_bg",
+        ];
+        for key in probe {
+            assert!(
+                theme.resolve_theme_key(key).is_some(),
+                "reader lost key {key}"
+            );
+            assert!(
+                theme.resolve_theme_key_mut(key).is_some(),
+                "mutator missing key {key}"
+            );
+        }
     }
 
     #[test]

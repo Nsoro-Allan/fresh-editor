@@ -1981,6 +1981,36 @@ impl JsEditorApi {
             .is_ok()
     }
 
+    /// Override theme colors in-memory for the running session. `overrides`
+    /// is a JS object mapping `"section.field"` keys (same namespace as
+    /// `getThemeSchema`) to `[r, g, b]` triplets (0–255 each).
+    ///
+    /// Unknown keys are dropped silently; out-of-range values are clamped
+    /// to `0..=255`. Overrides survive until the next `applyTheme` call
+    /// (which replaces the whole `Theme`). Intended for fast animation
+    /// loops from `init.ts` — no disk I/O, no theme-registry rescan.
+    pub fn override_theme_colors<'js>(
+        &self,
+        _ctx: rquickjs::Ctx<'js>,
+        overrides: Value<'js>,
+    ) -> rquickjs::Result<bool> {
+        let map: std::collections::HashMap<String, [i32; 3]> =
+            rquickjs_serde::from_value(overrides).map_err(|e| {
+                rquickjs::Error::new_from_js_message("deserialize", "", &e.to_string())
+            })?;
+        let clamped = map
+            .into_iter()
+            .map(|(k, [r, g, b])| {
+                let clamp = |v: i32| v.clamp(0, 255) as u8;
+                (k, [clamp(r), clamp(g), clamp(b)])
+            })
+            .collect();
+        Ok(self
+            .command_sender
+            .send(PluginCommand::OverrideThemeColors { overrides: clamped })
+            .is_ok())
+    }
+
     /// Get theme schema as JS object
     pub fn get_theme_schema<'js>(&self, ctx: rquickjs::Ctx<'js>) -> rquickjs::Result<Value<'js>> {
         let schema = self.services.get_theme_schema();

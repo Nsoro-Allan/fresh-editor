@@ -930,6 +930,20 @@ pub enum PluginCommand {
     /// Apply a theme by name
     ApplyTheme { theme_name: String },
 
+    /// Override specific theme color keys in-memory for the running session.
+    /// Keys are the same `section.field` strings accepted by
+    /// `Theme::resolve_theme_key` (e.g. `"editor.bg"`, `"ui.status_bar_fg"`).
+    /// Values are `[r, g, b]` triplets. Unknown keys are silently dropped so
+    /// a typo in a fast animation loop doesn't blow up the caller; the
+    /// return channel isn't used — plugins can do a dry-run look-up via
+    /// `getThemeSchema` if they want compile-time safety. Overrides are
+    /// reset the next time the caller (or anyone else) invokes
+    /// `applyTheme`, because that replaces the whole `Theme` from the
+    /// registry.
+    OverrideThemeColors {
+        overrides: HashMap<String, [u8; 3]>,
+    },
+
     /// Reload configuration from file
     /// After a plugin saves config changes, it should call this to reload the config
     ReloadConfig,

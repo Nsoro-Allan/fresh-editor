@@ -634,6 +634,18 @@ impl Editor {
             PluginCommand::ApplyTheme { theme_name } => {
                 self.apply_theme(&theme_name);
             }
+            PluginCommand::OverrideThemeColors { overrides } => {
+                let pairs = overrides
+                    .into_iter()
+                    .map(|(k, [r, g, b])| (k, ratatui::style::Color::Rgb(r, g, b)));
+                let applied = self.theme.override_colors(pairs);
+                if applied > 0 {
+                    // Diagnostics / semantic overlays bake RGB at creation
+                    // time — rebuild them so the override is visible
+                    // everywhere on the next frame.
+                    self.reapply_all_overlays();
+                }
+            }
             PluginCommand::ReloadConfig => {
                 self.reload_config();
             }

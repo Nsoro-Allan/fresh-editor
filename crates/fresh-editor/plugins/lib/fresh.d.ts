@@ -1256,6 +1256,17 @@ interface EditorAPI {
 	*/
 	applyTheme(themeName: string): boolean;
 	/**
+	* Override theme colors in-memory for the running session. `overrides`
+	* is a JS object mapping `"section.field"` keys (same namespace as
+	* `getThemeSchema`) to `[r, g, b]` triplets (0–255 each).
+	* 
+	* Unknown keys are dropped silently; out-of-range values are clamped
+	* to `0..=255`. Overrides survive until the next `applyTheme` call
+	* (which replaces the whole `Theme`). Intended for fast animation
+	* loops from `init.ts` — no disk I/O, no theme-registry rescan.
+	*/
+	overrideThemeColors(overrides: unknown): boolean;
+	/**
 	* Get theme schema as JS object
 	*/
 	getThemeSchema(): unknown;

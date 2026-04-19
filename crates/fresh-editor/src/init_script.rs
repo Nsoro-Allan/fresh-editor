@@ -47,10 +47,32 @@ const editor = getEditor();
 // Commands:  Ctrl+P -> "init: Reload", "init: Check"
 // CLI:       fresh --cmd init check | fresh --safe | fresh --no-init
 
-// Example: apply a theme from terminal colour detection.
-// const colorfgbg = editor.getEnv("COLORFGBG") ?? "";
-// const isDark = colorfgbg.endsWith(";0") || colorfgbg.endsWith(";default");
-// editor.applyTheme(isDark ? "one-dark" : "one-light");
+// Example: fade the editor in from black to the target theme. Uses
+// `overrideThemeColors` (in-memory, no disk I/O) for each frame, then
+// calls `applyTheme` at the end to drop the overrides and land cleanly
+// on the saved theme. `editor.delay(ms)` returns a Promise, so an async
+// for-loop is all the timing machinery we need — no setInterval.
+// (async () => {
+//     const target = "one-dark";
+//     const data = editor.getThemeData(target) as
+//         | { editor?: Record<string, [number, number, number]> }
+//         | null;
+//     const bg = data?.editor?.bg ?? [30, 30, 30];
+//     const fg = data?.editor?.fg ?? [220, 220, 220];
+//     const frames = 18;
+//     const stepMs = 16;
+//     const lerp = (a: number, b: number, t: number) =>
+//         Math.round(a + (b - a) * t);
+//     for (let i = 1; i <= frames; i++) {
+//         const t = i / frames;
+//         editor.overrideThemeColors({
+//             "editor.bg": [lerp(0, bg[0], t), lerp(0, bg[1], t), lerp(0, bg[2], t)],
+//             "editor.fg": [lerp(0, fg[0], t), lerp(0, fg[1], t), lerp(0, fg[2], t)],
+//         });
+//         await editor.delay(stepMs);
+//     }
+//     editor.applyTheme(target); // drop overrides, settle on the real theme
+// })();
 
 // Example: calmer UI over SSH. setSetting writes to the runtime layer —
 // nothing is persisted to disk, and removing this file is a complete undo.
