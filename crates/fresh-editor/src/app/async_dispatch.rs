@@ -69,6 +69,13 @@ impl Editor {
                     self.resend_did_open_for_language(&language);
                     self.request_semantic_tokens_for_language(&language);
                     self.request_folding_ranges_for_language(&language);
+                    // Now that capabilities are known, kick off inlay hints
+                    // and pull-diagnostics for buffers that opened before the
+                    // `initialize` handshake completed. Both paths route
+                    // through `handle_for_feature_mut`, so servers that
+                    // didn't advertise the capability are skipped.
+                    self.request_inlay_hints_for_language(&language);
+                    self.pull_diagnostics_for_language(&language);
                 }
                 AsyncMessage::LspError {
                     language,

@@ -794,7 +794,7 @@ impl Editor {
     }
 
     /// Re-pull diagnostics for all open buffers associated with the given language.
-    fn pull_diagnostics_for_language(&mut self, language: &str) {
+    pub(super) fn pull_diagnostics_for_language(&mut self, language: &str) {
         // Use the shared language-filtered buffer enumeration so requests
         // never leak out to a server with a different scope.
         let uris: Vec<_> = self
@@ -1469,6 +1469,24 @@ impl Editor {
             .collect();
         for buffer_id in buffer_ids {
             self.schedule_folding_ranges_refresh(buffer_id);
+        }
+    }
+
+    /// Request inlay hints for all open buffers matching a language.
+    ///
+    /// Used on `LspInitialized` so buffers that opened before the server
+    /// finished its `initialize` handshake still receive hints once
+    /// capabilities are known. Per-buffer requests route through
+    /// `handle_for_feature_mut(InlayHints)`, so servers that didn't
+    /// advertise `inlayHintProvider` are transparently skipped.
+    pub(super) fn request_inlay_hints_for_language(&mut self, language: &str) {
+        let buffer_ids: Vec<_> = self
+            .buffers_for_language(language)
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        for buffer_id in buffer_ids {
+            self.request_inlay_hints_for_buffer(buffer_id);
         }
     }
 }

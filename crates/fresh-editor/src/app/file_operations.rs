@@ -876,17 +876,22 @@ impl Editor {
                     }
                 }
 
-                // Request pull diagnostics from the first handle
-                if let Some(client) = lsp.get_handle_mut(&language) {
+                // Route each follow-up request through capability-aware
+                // routing so we never send an optional method to a server
+                // that didn't advertise it. On a cold spawn the capability
+                // check returns `None` (capabilities aren't known until the
+                // `initialize` response arrives); the `LspInitialized`
+                // handler replays these requests once capabilities land.
+                if let Some(sh) =
+                    lsp.handle_for_feature_mut(&language, crate::types::LspFeature::Diagnostics)
+                {
                     let request_id = self.next_lsp_request_id;
                     self.next_lsp_request_id += 1;
                     if let Err(e) =
-                        client.document_diagnostic(request_id, uri.clone(), previous_result_id)
+                        sh.handle
+                            .document_diagnostic(request_id, uri.clone(), previous_result_id)
                     {
-                        tracing::debug!(
-                            "Failed to request pull diagnostics (server may not support): {}",
-                            e
-                        );
+                        tracing::debug!("Failed to request pull diagnostics: {}", e);
                     } else {
                         tracing::info!(
                             "Requested pull diagnostics for {} (request_id={})",
@@ -894,19 +899,24 @@ impl Editor {
                             request_id
                         );
                     }
+                }
 
-                    // Request inlay hints
-                    if enable_inlay_hints {
+                if enable_inlay_hints {
+                    if let Some(sh) =
+                        lsp.handle_for_feature_mut(&language, crate::types::LspFeature::InlayHints)
+                    {
                         let request_id = self.next_lsp_request_id;
                         self.next_lsp_request_id += 1;
 
-                        if let Err(e) =
-                            client.inlay_hints(request_id, uri.clone(), 0, 0, last_line, last_char)
-                        {
-                            tracing::debug!(
-                                "Failed to request inlay hints (server may not support): {}",
-                                e
-                            );
+                        if let Err(e) = sh.handle.inlay_hints(
+                            request_id,
+                            uri.clone(),
+                            0,
+                            0,
+                            last_line,
+                            last_char,
+                        ) {
+                            tracing::debug!("Failed to request inlay hints: {}", e);
                         } else {
                             self.pending_inlay_hints_requests.insert(
                                 request_id,
