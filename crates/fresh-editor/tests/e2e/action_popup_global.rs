@@ -194,3 +194,150 @@ fn action_popup_persists_across_buffer_switch() {
         after_switch
     );
 }
+
+fn show_generic_popup(
+    harness: &mut EditorTestHarness,
+    popup_id: &str,
+    title: &str,
+    body: &str,
+    actions: Vec<(&str, &str)>,
+) {
+    harness
+        .editor_mut()
+        .handle_plugin_command(PluginCommand::ShowActionPopup {
+            popup_id: popup_id.to_string(),
+            title: title.to_string(),
+            message: body.to_string(),
+            actions: actions
+                .into_iter()
+                .map(|(id, label)| ActionPopupAction {
+                    id: id.to_string(),
+                    label: label.to_string(),
+                })
+                .collect(),
+        })
+        .unwrap();
+}
+
+/// Two popups pushed concurrently (e.g. two plugins both deciding the
+/// session needs attention) must queue LIFO: only the top is interactive,
+/// dismissing it surfaces the next, and each one fires its own
+/// `action_popup_result` hook instead of the second clobbering the first's
+/// tracking.
+#[test]
+fn action_popups_queue_and_each_resolves_independently() {
+    let mut harness = EditorTestHarness::new(80, 24).unwrap();
+
+    // First plugin pops up an attach prompt.
+    show_generic_popup(
+        &mut harness,
+        "devcontainer-attach",
+        "Attach?",
+        "Attach to 'alpha'?",
+        vec![("attach", "Attach alpha"), ("dismiss", "Not now alpha")],
+    );
+    // Second plugin pops up right after — e.g. a different plugin's warning.
+    show_generic_popup(
+        &mut harness,
+        "pkg-install",
+        "Install?",
+        "Install bravo package?",
+        vec![("yes", "Install bravo"), ("no", "Skip bravo")],
+    );
+    harness.render().unwrap();
+
+    // Only the second (top-of-stack) popup is visible. The first is queued
+    // underneath and re-surfaces when the top is dismissed.
+    let frame1 = harness.screen_to_string();
+    assert!(
+        frame1.contains("Install bravo"),
+        "Top-of-stack popup must render. Screen:\n{}",
+        frame1
+    );
+    assert!(
+        !frame1.contains("Attach alpha"),
+        "Queued popup must not leak through underneath. Screen:\n{}",
+        frame1
+    );
+
+    // Esc dismisses the top (fires action_popup_result for 'pkg-install').
+    harness.send_key(KeyCode::Esc, KeyModifiers::NONE).unwrap();
+    harness.render().unwrap();
+
+    // Now the first popup (`devcontainer-attach`) takes its place.
+    let frame2 = harness.screen_to_string();
+    assert!(
+        frame2.contains("Attach alpha"),
+        "Queued popup must surface after the top is dismissed. Screen:\n{}",
+        frame2
+    );
+    assert!(
+        !frame2.contains("Install bravo"),
+        "Dismissed popup must not be re-drawn. Screen:\n{}",
+        frame2
+    );
+
+    // Dismiss the remaining popup too.
+    harness.send_key(KeyCode::Esc, KeyModifiers::NONE).unwrap();
+    harness.render().unwrap();
+
+    let frame3 = harness.screen_to_string();
+    assert!(
+        !frame3.contains("Attach alpha") && !frame3.contains("Install bravo"),
+        "Both popups must be gone after two Esc presses. Screen:\n{}",
+        frame3
+    );
+}
+
+/// Same as above, but each popup is confirmed via Enter rather than Esc,
+/// exercising the confirm path's parallel-stack pop.
+#[test]
+fn action_popups_queue_confirms_preserve_per_popup_identity() {
+    let mut harness = EditorTestHarness::new(80, 24).unwrap();
+
+    show_generic_popup(
+        &mut harness,
+        "first",
+        "First?",
+        "First popup body",
+        vec![("ok", "OK first"), ("cancel", "Cancel first")],
+    );
+    show_generic_popup(
+        &mut harness,
+        "second",
+        "Second?",
+        "Second popup body",
+        vec![("ok", "OK second"), ("cancel", "Cancel second")],
+    );
+    harness.render().unwrap();
+
+    // Enter on the top popup ('second') — default selection is index 0 'OK'.
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+    harness.render().unwrap();
+
+    let after_first_confirm = harness.screen_to_string();
+    assert!(
+        !after_first_confirm.contains("Second popup body"),
+        "Top popup must be gone after Enter. Screen:\n{}",
+        after_first_confirm
+    );
+    assert!(
+        after_first_confirm.contains("First popup body"),
+        "Queued popup must surface after top is confirmed. Screen:\n{}",
+        after_first_confirm
+    );
+
+    // Enter again — this time on the first popup.
+    harness
+        .send_key(KeyCode::Enter, KeyModifiers::NONE)
+        .unwrap();
+    harness.render().unwrap();
+    let after_second_confirm = harness.screen_to_string();
+    assert!(
+        !after_second_confirm.contains("First popup body"),
+        "Both popups must be resolved. Screen:\n{}",
+        after_second_confirm
+    );
+}

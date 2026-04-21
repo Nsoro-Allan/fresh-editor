@@ -1029,9 +1029,12 @@ pub struct Editor {
     /// Hunks for the Review Diff tool
     review_hunks: Vec<fresh_core::api::ReviewHunk>,
 
-    /// Active action popup (for plugin showActionPopup API)
-    /// Stores (popup_id, Vec<(action_id, action_label)>)
-    active_action_popup: Option<(String, Vec<(String, String)>)>,
+    /// Stack of active plugin action popups, parallel to `global_popups`:
+    /// each entry is `(popup_id, actions)` for the popup at the same index
+    /// in the global stack. Replaces the old single-slot tracking so two
+    /// plugins firing showActionPopup concurrently each get their own
+    /// `action_popup_result` callback when their popup is resolved.
+    active_action_popup: Vec<(String, Vec<(String, String)>)>,
 
     /// Editor-level popups that float above any buffer regardless of which
     /// one is active. Plugin notifications (showActionPopup) live here so a

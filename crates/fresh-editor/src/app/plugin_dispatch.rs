@@ -1537,10 +1537,14 @@ impl Editor {
                     })
                     .collect();
 
-                // Store action info for when popup is confirmed/cancelled
+                // Push tracking onto the stack parallel to `global_popups`.
+                // A second plugin calling showActionPopup while the first is
+                // still up gets a new entry, not a clobbered one, so each
+                // popup fires its own `action_popup_result` on dismiss.
                 let action_ids: Vec<(String, String)> =
                     actions.into_iter().map(|a| (a.id, a.label)).collect();
-                self.active_action_popup = Some((popup_id.clone(), action_ids));
+                self.active_action_popup
+                    .push((popup_id.clone(), action_ids));
 
                 // Create popup with message + action list
                 let popup_data = crate::model::event::PopupData {
@@ -1563,9 +1567,9 @@ impl Editor {
                 let popup_obj = crate::state::convert_popup_data_to_popup(&popup_data);
                 self.global_popups.show(popup_obj);
                 tracing::info!(
-                    "Action popup shown: id={}, active_action_popup={:?}",
+                    "Action popup shown: id={}, stack_depth={}",
                     popup_id,
-                    self.active_action_popup.as_ref().map(|(id, _)| id)
+                    self.active_action_popup.len()
                 );
             }
 

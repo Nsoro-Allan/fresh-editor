@@ -976,41 +976,43 @@ impl Editor {
         // virtual buffers (Dashboard, diagnostics) that own the whole split.
         // These don't need cursor-relative positioning — they all use absolute
         // positions like BottomRight or Centered.
-        if self.global_popups.is_visible() {
-            self.cached_layout.global_popup_areas.clear();
-            for (popup_idx, popup) in self.global_popups.all().iter().enumerate() {
-                let popup_area = popup.calculate_area(size, None);
-                let desc_height = popup.description_height();
-                let inner_area = if popup.bordered {
-                    ratatui::layout::Rect {
-                        x: popup_area.x + 1,
-                        y: popup_area.y + 1 + desc_height,
-                        width: popup_area.width.saturating_sub(2),
-                        height: popup_area.height.saturating_sub(2 + desc_height),
-                    }
-                } else {
-                    ratatui::layout::Rect {
-                        x: popup_area.x,
-                        y: popup_area.y + desc_height,
-                        width: popup_area.width,
-                        height: popup_area.height.saturating_sub(desc_height),
-                    }
-                };
-                let num_items = match &popup.content {
-                    crate::view::popup::PopupContent::List { items, .. } => items.len(),
-                    _ => 0,
-                };
-                self.cached_layout.global_popup_areas.push((
-                    popup_idx,
-                    popup_area,
-                    inner_area,
-                    popup.scroll_offset,
-                    num_items,
-                ));
-                popup.render_with_hover(frame, popup_area, &theme_clone, hover_target.as_ref());
-            }
-        } else {
-            self.cached_layout.global_popup_areas.clear();
+        //
+        // Queue semantics: concurrent action popups stack in `global_popups`,
+        // but only the top one renders & receives input. Deeper popups
+        // surface as the top is resolved — the alternative (drawing all at
+        // the same BottomRight slot) makes them illegible.
+        self.cached_layout.global_popup_areas.clear();
+        if let Some(popup) = self.global_popups.top() {
+            let top_idx = self.global_popups.all().len() - 1;
+            let popup_area = popup.calculate_area(size, None);
+            let desc_height = popup.description_height();
+            let inner_area = if popup.bordered {
+                ratatui::layout::Rect {
+                    x: popup_area.x + 1,
+                    y: popup_area.y + 1 + desc_height,
+                    width: popup_area.width.saturating_sub(2),
+                    height: popup_area.height.saturating_sub(2 + desc_height),
+                }
+            } else {
+                ratatui::layout::Rect {
+                    x: popup_area.x,
+                    y: popup_area.y + desc_height,
+                    width: popup_area.width,
+                    height: popup_area.height.saturating_sub(desc_height),
+                }
+            };
+            let num_items = match &popup.content {
+                crate::view::popup::PopupContent::List { items, .. } => items.len(),
+                _ => 0,
+            };
+            self.cached_layout.global_popup_areas.push((
+                top_idx,
+                popup_area,
+                inner_area,
+                popup.scroll_offset,
+                num_items,
+            ));
+            popup.render_with_hover(frame, popup_area, &theme_clone, hover_target.as_ref());
         }
 
         // Render menu bar last so dropdown appears on top of all other content

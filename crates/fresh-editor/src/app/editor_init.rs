@@ -752,7 +752,7 @@ impl Editor {
             search_scan: search_scan::SearchScan::default(),
             search_overlay_top_byte: None,
             review_hunks: Vec::new(),
-            active_action_popup: None,
+            active_action_popup: Vec::new(),
             global_popups: crate::view::popup::PopupManager::new(),
             composite_buffers: HashMap::new(),
             composite_view_states: HashMap::new(),

@@ -50,10 +50,10 @@ impl Editor {
 
         // Check if this is an action popup (from plugin showActionPopup).
         // Action popups live on the editor-level (global) stack so they show
-        // over any buffer; read the selection from there first, falling back
-        // to the active buffer's stack for legacy callers.
-        if let Some((popup_id, _actions)) = &self.active_action_popup {
-            let popup_id = popup_id.clone();
+        // over any buffer; the `active_action_popup` stack runs parallel to
+        // `global_popups`, so the *top* entry corresponds to the *top*
+        // popup. Pop both together here.
+        if !self.active_action_popup.is_empty() {
             let action_id = self
                 .global_popups
                 .top()
@@ -63,7 +63,10 @@ impl Editor {
                 .unwrap_or_else(|| "dismissed".to_string());
 
             self.hide_popup();
-            self.active_action_popup = None;
+            let (popup_id, _actions) = self
+                .active_action_popup
+                .pop()
+                .expect("non-empty checked above");
 
             // Fire the ActionPopupResult hook
             self.plugin_manager.run_hook(
@@ -248,8 +251,8 @@ impl Editor {
     /// Handle PopupCancel action.
     pub fn handle_popup_cancel(&mut self) {
         tracing::info!(
-            "handle_popup_cancel: active_action_popup={:?}",
-            self.active_action_popup.as_ref().map(|(id, _)| id)
+            "handle_popup_cancel: action_popup_stack_depth={}",
+            self.active_action_popup.len()
         );
 
         // Check if this is an LSP status details popup
@@ -267,8 +270,10 @@ impl Editor {
             return;
         }
 
-        // Check if this is an action popup (from plugin showActionPopup)
-        if let Some((popup_id, _actions)) = self.active_action_popup.take() {
+        // Check if this is an action popup (from plugin showActionPopup).
+        // Pop the top entry of the parallel tracking stack together with the
+        // popup itself so a deeper queued popup (if any) surfaces next.
+        if let Some((popup_id, _actions)) = self.active_action_popup.pop() {
             tracing::info!(
                 "handle_popup_cancel: dismissing action popup id={}",
                 popup_id
