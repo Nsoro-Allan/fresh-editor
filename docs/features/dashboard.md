@@ -22,6 +22,7 @@ The dashboard is off by default. Turn it on from the Settings UI (**Open Setting
 - Weather and GitHub widgets need network access; if either is unreachable, the section is quietly hidden rather than blocking the rest of the dashboard.
 - `git` must be on `PATH` for the git and "vs master" rows to populate.
 - The GitHub section shows open PRs for the *current repo* (detected from the `origin` remote). Outside a GitHub clone, it renders a short explanatory message instead.
+- **Keyboard navigation** — `Tab` / `Down` / `j` step to the next clickable row, `Shift+Tab` / `Up` / `k` step back, `Enter` activates. Mouse clicks still work.
 
 ## Adding Your Own Sections
 

@@ -18,8 +18,9 @@ Preview tabs are enabled by default. Turn them off in the Settings UI if you pre
 ## Cut / Copy / Paste and Multi-Selection
 
 - **`Ctrl+C` / `Ctrl+X` / `Ctrl+V`** — copy, cut, or paste the selection. Same-directory copy auto-appends ` copy` / ` copy 2` etc. Same-directory cut is a no-op. Paste into a different directory with a name conflict prompts per-file: (o)verwrite, (O) all, (s)kip, (S) all, (c)ancel.
-- **Cut-pending** items are visually dimmed until the paste finishes or is cancelled.
+- **Cut-pending** items are visually dimmed. Cancel a pending cut with Escape or by pasting back into the same directory.
 - **`Shift+Up` / `Shift+Down`** extend a multi-select range from the current anchor; all clipboard operations (and delete) act on the whole selection.
+- **Buffers follow files** — renaming or moving a file (via cut+paste) relocates any open buffers pointing at it; deleting a file closes its buffer. Renaming a directory relocates buffers for every file inside it.
 
 ## Width
 

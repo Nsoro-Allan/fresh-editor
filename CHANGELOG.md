@@ -14,7 +14,9 @@
 
 * **Hot-exit restore split from session restore**: `editor.restore_previous_session` config and the `--no-restore` / `--restore` CLI flags now control workspace/tab restoration separately from hot-exit content — unsaved scratch buffers come back even when you opt out of full session restore (#1404).
 
-* **File explorer — cut/copy/paste + multi-selection**: `Ctrl+C` / `Ctrl+X` / `Ctrl+V` in the explorer with same-dir auto-rename, per-file conflict prompt on cross-dir paste, and `Shift+Up/Down` multi-select. Cut-pending items are dimmed until pasted.
+* **File explorer — cut/copy/paste + multi-selection**: `Ctrl+C` / `Ctrl+X` / `Ctrl+V` in the explorer with same-dir auto-rename, per-file conflict prompt on cross-dir paste, and `Shift+Up/Down` multi-select. Cut-pending items are dimmed until pasted; cancel a pending cut with Escape or by pasting back into the same directory. Renaming a file or directory relocates any open buffers inside it; deleting a file closes its buffer.
+
+* **Dashboard — keyboard navigation**: `Tab` / `Down` / `j` steps forward through clickable rows (PR numbers, repo URL, review-branch action, …), `Shift+Tab` / `Up` / `k` steps back, `Enter` activates the focused row. Mouse clicks continue to work.
 
 * **File explorer — keyboard preview**: Moving the cursor with Up/Down in the explorer previews the highlighted file in a preview tab (#1570), so you can scan files without leaving the keyboard.
 
@@ -91,6 +93,12 @@
 * **Hardware cursor no longer bleeds through popups**: The terminal hardware cursor is hidden when an overlay popup covers it.
 
 * **Focus — tab clicks reset explorer context** (#1540): Clicking a tab or buffer no longer leaves the FileExplorer key context active.
+
+* **File explorer poll fixes**: Background refresh no longer collapses folders you've expanded, and resets the cursor to the root only when the selected path is genuinely gone.
+
+* **Review PR Branch — default-branch detection**: The prompt now pre-fills the repo's actual default branch (via `origin/HEAD`) instead of hard-coding `main`.
+
+* **Review: PageUp/PageDown**: Paging in review-branch mode now scrolls the commit list instead of moving the cursor by one row.
 
 ### Under the Hood
 
