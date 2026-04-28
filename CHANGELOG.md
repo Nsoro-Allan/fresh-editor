@@ -1,5 +1,28 @@
 # Release Notes
 
+## 0.3.2
+
+### Features
+
+* **Live Diff plugin**: Unified-diff overlay rendered live in the editable buffer — gutter `+` / `-` / `~` glyphs, virtual lines showing prior content, and background stripes on changed lines. Updates as the file changes on disk (great for watching an agent edit your file). Opt-in via `Live Diff: Toggle (Global)` / `Live Diff: Toggle (Buffer)`. Reference selectable per buffer: `vs HEAD` / `vs Disk` / `vs Branch...` / `vs Default Branch`. `diff_nav.ts` n/p picks up live-diff hunks too. Translations for all 14 locales.
+
+* **New Startup section in Settings** (open Settings and search "Startup") groups everything that fires on launch:
+    - **Blank-workspace flow** (#1753) — *Auto Create Empty Buffer On Last Buffer Close* (Editor) and *Auto Open On Last Buffer Close* (File Explorer). With both off, closing the last buffer leaves a truly blank pane (no `[No Name]`, no gutter, no `~`); buffer-specific status-bar items and menu entries are suppressed, and a subdued centered hint shows the keys to escape (`Ctrl+P` / `Ctrl+O` / `Ctrl+E`).
+    - *Skip Session Restore When Files Passed* — `fresh src/main.rs` opens just that file; bare `fresh` and `fresh some/dir` still restore. Hot-exit recovery still runs. `--restore` overrides.
+    - *Restore Previous Session* (existing, moved into Startup).
+
+* **File explorer side** (thanks @paveloparev!): *Side* under File Explorer in Settings — left or right.
+
+* **Auto-hide prompt line**: *Show Prompt Line* now defaults off — the prompt line only appears while a prompt is active.
+
+* **Mark mode preserved through Go to Line** so you can extend selections across the jump.
+
+### Improvements
+
+* **Plugin loading deferred off the boot critical path** — another ~225 ms saved. Same load order, same hooks, just async.
+
+* **Popup focus**: LSP popups that auto-show on file open (status popup, hover, signature help, plugin Text overlays) no longer steal the next keystroke. They show unfocused with an `[Alt+T to focus]` hint; user-invoked popups (Completion, code actions, status-bar `{remote}`, LSP-status menu) still grab focus on show. Settings / Menu / Prompt modals take precedence over unfocused buffer popups for `Esc` / `popup_focus`.
+
 ## 0.3.1
 
 ### Features
