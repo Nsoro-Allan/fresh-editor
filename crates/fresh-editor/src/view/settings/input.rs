@@ -1340,19 +1340,29 @@ mod tests {
 
         let mut ctx = InputContext::new();
 
-        // Enter on categories should NOT affect settings items
-        // It should just move focus to settings panel
+        // Per the tree-view spec: only Tab switches panels. Enter,
+        // Left, and Right are *no longer* shortcuts to move focus
+        // out of the categories panel.
+        // * Enter falls through (Ignored) — let the modal handle it.
+        // * Right expands the focused category (no-op for non-
+        //   expandable ones); does NOT move focus to Settings.
+        // * Left collapses; same — does not switch panels.
+        // * Tab is the only key that switches panels.
         let result = state.handle_key_event(&key(KeyCode::Enter), &mut ctx);
-        assert_eq!(result, InputResult::Consumed);
-        assert_eq!(state.focus_panel(), FocusPanel::Settings);
+        assert_eq!(result, InputResult::Ignored);
+        assert_eq!(state.focus_panel(), FocusPanel::Categories);
 
-        // Go back to categories
-        state.focus.set(FocusPanel::Categories);
-
-        // Left/Right on categories should be consumed but not affect settings
         let result = state.handle_key_event(&key(KeyCode::Right), &mut ctx);
         assert_eq!(result, InputResult::Consumed);
-        // Should have moved to settings panel
+        assert_eq!(state.focus_panel(), FocusPanel::Categories);
+
+        let result = state.handle_key_event(&key(KeyCode::Left), &mut ctx);
+        assert_eq!(result, InputResult::Consumed);
+        assert_eq!(state.focus_panel(), FocusPanel::Categories);
+
+        // Tab is the panel switcher.
+        let result = state.handle_key_event(&key(KeyCode::Tab), &mut ctx);
+        assert_eq!(result, InputResult::Consumed);
         assert_eq!(state.focus_panel(), FocusPanel::Settings);
     }
 
